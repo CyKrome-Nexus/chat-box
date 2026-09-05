@@ -48,6 +48,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [E2EE Media Pipeline & Encrypted Backups](./architecture/e2ee-media.md) | AES-256-GCM encrypt/verify/decrypt on every real attachment sent, and PBKDF2-derived (Argon2id substitute) passphrase-encrypted database backups exported/restored via the OS share sheet and document picker. |
 | [Zero-Knowledge Encrypted Push Notifications](./architecture/encrypted-push.md) | The encrypted push payload contract, an encrypted quick-reply path, and an App Group config plugin — plus an honest account of why the iOS NSE/Android background decryptor themselves are native platform code this environment can't build or verify, with reference (unbuilt) Swift/Kotlin showing the integration shape. |
 | [Animated Stickers, Sticker Maker & GIFs](./architecture/stickers.md) | Real hand-authored `.tgs` (gzipped Lottie) stickers rendered via `lottie-react-native`, a pack manager with shareable deep links, and an in-app sticker maker using a manual lasso cutout as a real substitute for native ML subject segmentation. |
+| [Production Status & Stories Pipeline](./architecture/stories-pipeline.md) | Adjacent-story image prefetching, video-clock-synced progress bars, a real per-post audience picker with Sender-Keys-based key distribution, read-receipts-aware view tracking, a Muted Updates accordion, and Save to Personal Archive. |
 
 ---
 

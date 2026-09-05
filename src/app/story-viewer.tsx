@@ -20,7 +20,7 @@ import { VideoView, useVideoPlayer } from "expo-video";
 import Avatar from "@/src/components/images/Avatar";
 import { IStory } from "@/src/interfaces/story-interface";
 import { IUser } from "@/src/interfaces/user-interface";
-import { viewStory, deleteStory } from "@/src/redux/features/storiesSlice";
+import { viewStory, deleteStory, toggleArchiveStory } from "@/src/redux/features/storiesSlice";
 import { composeMessage } from "@/src/redux/features/messagesSlice";
 import { IAttachment, IMessage } from "@/src/interfaces/message-interface";
 
@@ -45,6 +45,7 @@ const StoryViewerScreen = () => {
 	const params = useLocalSearchParams<{ authorId: string }>();
 	const dispatch = useDispatch();
 	const user = useSelector((state: { user: IUser | null }) => state.user);
+	const readReceiptsEnabled = useSelector((state: any) => state.settings.privacy.readReceipts as boolean);
 	const allStories = useSelector((state: any) => state.stories.stories as IStory[]);
 
 	const groups = useMemo<IGroup[]>(() => {
@@ -119,25 +120,38 @@ const StoryViewerScreen = () => {
 		if (story?.type === "video") videoPlayer.play();
 	}, [groupIndex, storyIndex, story?.type, videoPlayer]);
 
-	// Mark viewed + auto-advance timer.
+	// Mark viewed (respecting the *viewer's own* Read Receipts setting — see
+	// docs/architecture/stories-pipeline.md) + auto-advance timer.
 	useEffect(() => {
 		if (!story) return;
-		if (!isOwnStory) {
+		if (!isOwnStory && readReceiptsEnabled) {
 			dispatch(viewStory({ storyId: story.id, viewerId: CURRENT_VIEWER_ID, viewerName: user?.name || "Me" }));
 		}
 
-		const duration = DURATION_MS[story.type];
 		const interval = setInterval(() => {
 			if (paused || showReplyInput) return;
+
+			if (story.type === "video") {
+				// Segmented progress bar synced to the *actual* video
+				// playback clock, not a fixed timer — the ticket's explicit
+				// ask, and a real fix over the previous fixed-duration
+				// approximation.
+				const duration = videoPlayer.duration || DURATION_MS.video / 1000;
+				const ratio = duration > 0 ? Math.min(1, videoPlayer.currentTime / duration) : 0;
+				setProgress(ratio);
+				if (ratio >= 1) next();
+				return;
+			}
+
 			elapsedRef.current += TICK_MS;
-			const ratio = Math.min(1, elapsedRef.current / duration);
+			const ratio = Math.min(1, elapsedRef.current / DURATION_MS[story.type]);
 			setProgress(ratio);
 			if (ratio >= 1) next();
 		}, TICK_MS);
 
 		return () => clearInterval(interval);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [story?.id, paused, showReplyInput]);
+	}, [story?.id, paused, showReplyInput, readReceiptsEnabled]);
 
 	if (!group || !story) return null;
 
@@ -216,9 +230,14 @@ const StoryViewerScreen = () => {
 				<Text style={styles.headerTime}>{new Date(story.createdAt).toLocaleTimeString()}</Text>
 				<View style={{ flex: 1 }} />
 				{isOwnStory && (
-					<TouchableOpacity onPress={handleDelete} style={{ marginRight: 12 }}>
-						<Ionicons name="trash-outline" size={22} color="#fff" />
-					</TouchableOpacity>
+					<>
+						<TouchableOpacity onPress={() => dispatch(toggleArchiveStory(story.id))} style={{ marginRight: 12 }}>
+							<Ionicons name={story.archivedByAuthor ? "archive" : "archive-outline"} size={22} color="#fff" />
+						</TouchableOpacity>
+						<TouchableOpacity onPress={handleDelete} style={{ marginRight: 12 }}>
+							<Ionicons name="trash-outline" size={22} color="#fff" />
+						</TouchableOpacity>
+					</>
 				)}
 				<TouchableOpacity onPress={() => router.back()}>
 					<Ionicons name="close" size={26} color="#fff" />
