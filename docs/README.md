@@ -20,6 +20,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Theming & Accessibility](./features/theming-customization.md) | Theme palette, OLED Black mode, chat wallpaper studio, and dynamic display zoom. |
 | [Authentication & Profiles](./features/auth-profile.md) | Auth flows, session persistence, `@username` registry, and phone number privacy. |
 | [UI Components & Styling](./architecture/ui-components.md) | React Native style conventions (border radius, conditional styles, SVG icons, themed text). |
+| [Fonts & Splash Screen](./architecture/fonts-and-splash.md) | Custom font loading via `expo-font` and the splash screen readiness gate. |
 
 ---
 
