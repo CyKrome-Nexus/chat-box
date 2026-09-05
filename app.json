@@ -68,7 +68,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Chatbox needs access to your camera to scan QR codes."
+          "cameraPermission": "Chatbox needs access to your camera to scan QR codes and record video notes.",
+          "microphonePermission": "Chatbox needs access to your microphone to record video notes."
         }
       ],
       "expo-sqlite",
@@ -79,7 +80,8 @@
           "microphonePermission": "Chatbox needs access to your microphone for audio and video calls."
         }
       ],
-      "@config-plugins/react-native-callkeep"
+      "@config-plugins/react-native-callkeep",
+      "expo-video"
     ]
   }
 }

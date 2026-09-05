@@ -34,6 +34,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Full-Featured Video Calling](./architecture/video-calling.md) | Singleton call engine, camera flip/preview, adaptive bitrate, in-app PiP bubble, group video grid — and what's still SFU/native-PiP-dependent. |
 | [Profile & QR Code](./architecture/profile-qr.md) | Profile view/edit, avatar cropping, QR code generation/sharing, QR scanner. |
 | [Fluid Micro-Animations & Gestures](./architecture/micro-animations.md) | Swipe-to-reply, keyboard-interactive input bar, morphing send/mic button, lightbox drag-to-dismiss, animated status ticks. |
+| [Telegram-Style Circular Video Notes](./architecture/video-notes.md) | Tap-to-toggle voice/video mic mode, circular front-camera recording with progress ring, autoplay-muted playback bubble, fullscreen viewer. |
 
 ---
 

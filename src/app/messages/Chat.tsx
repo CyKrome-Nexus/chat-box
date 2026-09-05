@@ -28,11 +28,15 @@ import VoiceRecordingBar from "@/src/components/messages/VoiceRecordingBar";
 import HandsfreeRecordingBar from "@/src/components/messages/HandsfreeRecordingBar";
 import EmojiPicker from "@/src/components/messages/EmojiPicker";
 import ReplyPreviewBar from "@/src/components/messages/ReplyPreviewBar";
+import VideoNoteRecordingOverlay from "@/src/components/messages/VideoNoteRecordingOverlay";
+import FullscreenVideoModal from "@/src/components/messages/FullscreenVideoModal";
 import { composeMessage, seedConversation, updateAttachmentProgress } from "@/src/redux/features/messagesSlice";
 import { useChatRealtime } from "@/src/hooks/useChatRealtime";
 import { useAttachmentPicker } from "@/src/hooks/useAttachmentPicker";
 import { useVoiceRecorder } from "@/src/hooks/useVoiceRecorder";
+import { useVideoNoteRecorder } from "@/src/hooks/useVideoNoteRecorder";
 import { audioPlaybackManager } from "@/src/lib/audio/playbackManager";
+import { formatDuration } from "@/src/lib/audio/format";
 import { IAttachment, IMessage } from "@/src/interfaces/message-interface";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
 
@@ -94,15 +98,20 @@ const Chat = () => {
 	const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
 	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 	const [viewerUri, setViewerUri] = useState<string | undefined>();
+	const [fullscreenVideoUri, setFullscreenVideoUri] = useState<string | undefined>();
 	const [replyTo, setReplyTo] = useState<IMessage | null>(null);
 	const flatListRef = useRef<FlatList>(null);
 	const { pickAttachment } = useAttachmentPicker();
 	const voiceRecorder = useVoiceRecorder();
+	const videoNoteRecorder = useVideoNoteRecorder();
+	const [noteMode, setNoteMode] = useState<"voice" | "video">("voice");
 	const [recordingMode, setRecordingMode] = useState<"idle" | "dragging" | "locked" | "preview">("idle");
 	const [previewRecording, setPreviewRecording] = useState<{ uri: string; durationMillis: number; waveform: number[] } | null>(null);
 	const slideX = useSharedValue(0);
 	const slideY = useSharedValue(0);
 	const sendMorph = useSharedValue(0);
+	const modeFlip = useSharedValue(0);
+	const pressStartRef = useSharedValue(0);
 
 	// Seed a small, realistic backlog for existing conversations (identified by
 	// having a preview `lastMessage`) so the timeline/bubble UI has something to
@@ -212,7 +221,11 @@ const Chat = () => {
 	};
 
 	const handleStartRecording = () => {
-		voiceRecorder.start();
+		if (noteMode === "video") {
+			videoNoteRecorder.start();
+		} else {
+			voiceRecorder.start();
+		}
 		setRecordingMode("dragging");
 	};
 
@@ -221,6 +234,26 @@ const Chat = () => {
 	};
 
 	const handleFinishRecording = async (cancelled: boolean) => {
+		if (noteMode === "video") {
+			if (cancelled) {
+				videoNoteRecorder.cancel();
+				setRecordingMode("idle");
+				return;
+			}
+
+			const result = await videoNoteRecorder.stop();
+			setRecordingMode("idle");
+			if (!result) return;
+
+			sendAttachmentMessage({
+				type: "video_note",
+				uri: result.uri,
+				duration: result.durationMillis / 1000,
+				uploadProgress: 0,
+			});
+			return;
+		}
+
 		if (cancelled) {
 			await voiceRecorder.cancel();
 			setRecordingMode("idle");
@@ -238,6 +271,19 @@ const Chat = () => {
 			waveform: result.waveform,
 			uploadProgress: 0,
 		});
+	};
+
+	// A quick tap (short press, negligible movement) on the mic button toggles
+	// between voice/video note mode instead of sending a near-zero-length
+	// recording — whatever recording had just started on `onBegin` is discarded.
+	const handleCancelForModeSwitch = () => {
+		if (noteMode === "video") {
+			videoNoteRecorder.cancel();
+		} else {
+			voiceRecorder.cancel();
+		}
+		setRecordingMode("idle");
+		setNoteMode((prev) => (prev === "voice" ? "video" : "voice"));
 	};
 
 	const handlePauseForPreview = async () => {
@@ -269,10 +315,14 @@ const Chat = () => {
 		setRecordingMode("idle");
 	};
 
+	const TAP_MAX_DURATION_MS = 200;
+	const TAP_MAX_MOVEMENT = 10;
+
 	const micPanGesture = Gesture.Pan()
 		.minDistance(0)
 		.enabled(recordingMode === "idle" || recordingMode === "dragging")
 		.onBegin(() => {
+			pressStartRef.value = Date.now();
 			runOnJS(handleStartRecording)();
 		})
 		.onUpdate((e) => {
@@ -280,20 +330,37 @@ const Chat = () => {
 			slideY.value = Math.min(0, e.translationY);
 		})
 		.onEnd(() => {
-			const cancelled = slideX.value < -SLIDE_TO_CANCEL_THRESHOLD;
-			const locked = slideY.value < -SWIPE_UP_TO_LOCK_THRESHOLD;
+			const elapsed = Date.now() - pressStartRef.value;
+			const moved = Math.max(Math.abs(slideX.value), Math.abs(slideY.value));
 
-			if (locked && !cancelled) {
-				runOnJS(handleLockRecording)();
+			if (elapsed < TAP_MAX_DURATION_MS && moved < TAP_MAX_MOVEMENT) {
+				runOnJS(handleCancelForModeSwitch)();
 			} else {
-				runOnJS(handleFinishRecording)(cancelled);
+				const cancelled = slideX.value < -SLIDE_TO_CANCEL_THRESHOLD;
+				const locked = slideY.value < -SWIPE_UP_TO_LOCK_THRESHOLD;
+
+				if (locked && !cancelled) {
+					runOnJS(handleLockRecording)();
+				} else {
+					runOnJS(handleFinishRecording)(cancelled);
+				}
 			}
 			slideX.value = withSpring(0);
 			slideY.value = withSpring(0);
 		});
 
+	const isRecordingActive = noteMode === "video" ? videoNoteRecorder.isRecording : voiceRecorder.isRecording;
+
 	const micAnimatedStyle = useAnimatedStyle(() => ({
-		transform: [{ translateX: slideX.value }, { scale: voiceRecorder.isRecording ? 1.15 : 1 }],
+		transform: [{ translateX: slideX.value }, { scale: isRecordingActive ? 1.15 : 1 }],
+	}));
+
+	useEffect(() => {
+		modeFlip.value = withTiming(noteMode === "video" ? 1 : 0, { duration: 260 });
+	}, [noteMode, modeFlip]);
+
+	const micIconFlipStyle = useAnimatedStyle(() => ({
+		transform: [{ perspective: 300 }, { rotateY: `${modeFlip.value * 180}deg` }],
 	}));
 
 	// Morph target: 0 = mic fully visible, 1 = send fully visible.
@@ -322,6 +389,7 @@ const Chat = () => {
 					message={item.message}
 					avatar={user?.avatar}
 					onPressImage={setViewerUri}
+					onPressVideoNote={setFullscreenVideoUri}
 					onSwipeReply={setReplyTo}
 				/>
 			)}
@@ -372,12 +440,37 @@ const Chat = () => {
 
 					<View style={styles.inputBar}>
 						{recordingMode === "dragging" ? (
-							<VoiceRecordingBar
-								durationMillis={voiceRecorder.durationMillis}
-								waveform={voiceRecorder.waveform}
-								slideX={slideX}
-								slideY={slideY}
-							/>
+							noteMode === "video" ? (
+								<View style={styles.recordingHintRow}>
+									<Ionicons name="chevron-back" size={16} color="#797C7B" />
+									<Text style={styles.recordingHintText}>Slide to cancel</Text>
+								</View>
+							) : (
+								<VoiceRecordingBar
+									durationMillis={voiceRecorder.durationMillis}
+									waveform={voiceRecorder.waveform}
+									slideX={slideX}
+									slideY={slideY}
+								/>
+							)
+						) : recordingMode === "locked" && noteMode === "video" ? (
+							<View style={styles.videoLockedRow}>
+								<TouchableOpacity
+									style={styles.videoDiscardButton}
+									onPress={() => handleFinishRecording(true)}
+								>
+									<Ionicons name="trash" size={20} color="#F04A4C" />
+								</TouchableOpacity>
+								<Text style={styles.recordingHintText}>
+									{formatDuration(videoNoteRecorder.durationMillis / 1000)}
+								</Text>
+								<TouchableOpacity
+									style={styles.videoSendButton}
+									onPress={() => handleFinishRecording(false)}
+								>
+									<Ionicons name="send" size={18} color="#fff" />
+								</TouchableOpacity>
+							</View>
 						) : recordingMode === "locked" || recordingMode === "preview" ? (
 							<HandsfreeRecordingBar
 								mode={recordingMode}
@@ -451,17 +544,31 @@ const Chat = () => {
 						    Hidden once locked/preview — HandsfreeRecordingBar has its own send button. */}
 						{(recordingMode === "idle" || recordingMode === "dragging") && (
 							<View style={styles.actionButtonSlot}>
+								{noteMode === "video" && recordingMode === "dragging" && (
+									<VideoNoteRecordingOverlay
+										ref={videoNoteRecorder.cameraRef}
+										durationMillis={videoNoteRecorder.durationMillis}
+										locked={false}
+										onCameraReady={videoNoteRecorder.beginRecordingOnCamera}
+									/>
+								)}
 								<GestureDetector gesture={micPanGesture}>
 									<Animated.View
 										style={[
 											styles.micButton,
-											voiceRecorder.isRecording && styles.micButtonActive,
+											isRecordingActive && styles.micButtonActive,
 											micAnimatedStyle,
 											micMorphStyle,
 										]}
 										pointerEvents={hasText ? "none" : "auto"}
 									>
-										<Ionicons name="mic" size={20} color={voiceRecorder.isRecording ? "#fff" : "#818181"} />
+										<Animated.View style={micIconFlipStyle}>
+											<Ionicons
+												name={noteMode === "video" ? "videocam" : "mic"}
+												size={20}
+												color={isRecordingActive ? "#fff" : "#818181"}
+											/>
+										</Animated.View>
 									</Animated.View>
 								</GestureDetector>
 
@@ -473,6 +580,16 @@ const Chat = () => {
 										<Ionicons name="send" size={22} color="#fff" />
 									</TouchableOpacity>
 								</Animated.View>
+							</View>
+						)}
+						{recordingMode === "locked" && noteMode === "video" && (
+							<View style={styles.actionButtonSlot}>
+								<VideoNoteRecordingOverlay
+									ref={videoNoteRecorder.cameraRef}
+									durationMillis={videoNoteRecorder.durationMillis}
+									locked
+									onCameraReady={videoNoteRecorder.beginRecordingOnCamera}
+								/>
 							</View>
 						)}
 					</View>
@@ -489,6 +606,11 @@ const Chat = () => {
 					uri={viewerUri}
 					visible={!!viewerUri}
 					onClose={() => setViewerUri(undefined)}
+				/>
+				<FullscreenVideoModal
+					uri={fullscreenVideoUri}
+					visible={!!fullscreenVideoUri}
+					onClose={() => setFullscreenVideoUri(undefined)}
 				/>
 			</View>
 		</TouchableWithoutFeedback>
@@ -561,6 +683,39 @@ const styles = StyleSheet.create({
 	},
 	micButtonActive: {
 		backgroundColor: "#F04A4C",
+	},
+	recordingHintRow: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 4,
+	},
+	recordingHintText: {
+		color: "#797C7B",
+		fontSize: 13,
+	},
+	videoLockedRow: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingHorizontal: 4,
+	},
+	videoDiscardButton: {
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	videoSendButton: {
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		backgroundColor: "#11BC6B",
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	offlineBanner: {
 		backgroundColor: "#F04A4C",
