@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
 	View,
+	Text,
 	StyleSheet,
 	Platform,
 	FlatList,
@@ -19,7 +20,8 @@ import { clip } from "@/src/constants/svgs/icons";
 import MessageBubble from "@/src/components/messages/MessageBubble";
 import DateSeparator, { getDateLabel } from "@/src/components/messages/DateSeparator";
 import EmptyChatState from "@/src/components/messages/EmptyChatState";
-import { sendMessage, seedConversation } from "@/src/redux/features/messagesSlice";
+import { seedConversation } from "@/src/redux/features/messagesSlice";
+import { useChatRealtime } from "@/src/hooks/useChatRealtime";
 import { IMessage } from "@/src/interfaces/message-interface";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
 
@@ -54,11 +56,18 @@ const Chat = () => {
 		: null;
 
 	const conversationId = user?.id || user?.name || "unknown";
+	const currentUserId = useSelector(
+		(state: any) => state.user?._id || state.user?.username || "me"
+	);
 
 	const dispatch = useDispatch();
 	const messages = useSelector(
 		(state: any) => state.messages.byConversation[conversationId] as IMessage[] | undefined
 	) || [];
+	const { connectionStatus, typingUsers, sendMessage, notifyTyping } = useChatRealtime(
+		conversationId,
+		currentUserId
+	);
 
 	const [keyboardOffset, setKeyboardOffset] = useState(0);
 	const [text, setText] = useState("");
@@ -124,7 +133,7 @@ const Chat = () => {
 	const handleSend = () => {
 		if (!text.trim()) return;
 
-		dispatch(sendMessage({ conversationId, text }));
+		sendMessage(text);
 		setText("");
 		setInputHeight(MIN_INPUT_HEIGHT);
 
@@ -132,6 +141,8 @@ const Chat = () => {
 			flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
 		});
 	};
+
+	const isTyping = typingUsers.length > 0;
 
 	const renderItem = ({ item }: { item: TDisplayItem }) => (
 		<View style={styles.invertedItem}>
@@ -146,6 +157,18 @@ const Chat = () => {
 	return (
 		<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 			<View style={styles.container}>
+				{connectionStatus === "offline" && (
+					<View style={styles.offlineBanner}>
+						<Text style={styles.offlineBannerText}>
+							You're offline — messages will send once you're back online
+						</Text>
+					</View>
+				)}
+				{isTyping && (
+					<View style={styles.typingBanner}>
+						<Text style={styles.typingBannerText}>{user?.name || "Contact"} is typing…</Text>
+					</View>
+				)}
 				{displayData.length === 0 ? (
 					<EmptyChatState name={user?.name} />
 				) : (
@@ -186,7 +209,10 @@ const Chat = () => {
 							returnKeyType="send"
 							blurOnSubmit={false}
 							value={text}
-							onChangeText={setText}
+							onChangeText={(value) => {
+								setText(value);
+								if (value.trim()) notifyTyping();
+							}}
 							multiline
 							onContentSizeChange={(e) => {
 								const nextHeight = Math.min(
@@ -274,6 +300,25 @@ const styles = StyleSheet.create({
 	},
 	sendButtonDisabled: {
 		opacity: 0.5,
+	},
+	offlineBanner: {
+		backgroundColor: "#F04A4C",
+		paddingVertical: 6,
+		paddingHorizontal: 16,
+	},
+	offlineBannerText: {
+		color: "#fff",
+		fontSize: 12,
+		textAlign: "center",
+	},
+	typingBanner: {
+		paddingVertical: 4,
+		paddingHorizontal: 16,
+	},
+	typingBannerText: {
+		color: "#797C7B",
+		fontSize: 12,
+		fontStyle: "italic",
 	},
 });
 
