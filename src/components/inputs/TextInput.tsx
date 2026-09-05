@@ -1,9 +1,8 @@
 import { StyleSheet, Text, View, TextInput as NativeTextInput, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import Colors from "@/src/constants/Colors";
-import { facebook } from "@/src/constants/svgs/logos";
-import BIcon from "../buttons/BIcon";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 
 type TTextInput = {
@@ -29,13 +28,10 @@ const TextInput = ({
 	const [showPassword, setShowPassword] = useState({ status: false, text: 'Show Password' });
 
 	const toggleShowPassword = () => {
-		setShowPassword(prev => showPassword.status ? {
-			status: false,
-			text: 'Show Password'
-		} : {
-			status: true,
-			text: 'Hide Password'
-		}) 
+		setShowPassword(prev => ({
+			status: !prev.status,
+			text: !prev.status ? 'Hide Password' : 'Show Password',
+		}));
 	}
 
 	return (
@@ -56,20 +52,22 @@ const TextInput = ({
 						placeholder={placeholder}
 						secureTextEntry={isPassword && !showPassword.status}
 						autoCapitalize={'none'}
-						maxLength={maxLength ?? isPassword ? 20 : 254}
+						maxLength={maxLength ?? (isPassword ? 20 : 254)}
 					/>
 					{
-						// isPassword && (<BIcon
-						// 	borderColor="#FFFFFF00"
-						// />)
-
-						isPassword && <TouchableOpacity 
-							style={{ justifyContent: 'center' }}
+						isPassword && <TouchableOpacity
+							style={styles.toggleButton}
 							onPress={toggleShowPassword}
+							hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+							accessibilityRole="button"
+							accessibilityLabel={showPassword.text}
 						>
-							<Text style={{}}>{showPassword.text}</Text>
+							<Ionicons
+								name={showPassword.status ? 'eye-off-outline' : 'eye-outline'}
+								size={22}
+								color={Colors.default}
+							/>
 						</TouchableOpacity>
-
 					}
 				</View>
 			</View>
@@ -99,6 +97,10 @@ const styles = StyleSheet.create({
 		flex: 1,
 		height: 60,
 		fontSize: 24,
+	},
+	toggleButton: {
+		justifyContent: 'center',
+		alignItems: 'center',
 	},
 });
 
