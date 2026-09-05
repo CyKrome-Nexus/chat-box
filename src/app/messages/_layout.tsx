@@ -6,11 +6,13 @@ import IconSVG from "@/src/components/images/IconSVG";
 import { backArrow, camera, phone } from "@/src/constants/svgs/icons";
 import Avatar from "@/src/components/images/Avatar";
 import BIcon from "@/src/components/buttons/BIcon";
+import { useCallManager } from "@/src/hooks/useCallManager";
 
 const MessagesLayout = () => {
 	const params = useLocalSearchParams();
 	const user = params.user ? JSON.parse(params?.user as string) : null;
-	console.log(user);
+	const { startOutgoingCall } = useCallManager();
+
 	return (
 		<Stack>
 			<Stack.Screen
@@ -25,12 +27,7 @@ const MessagesLayout = () => {
 						return (
 							<>
 								<TouchableOpacity
-									onPressIn={async () => {
-										function sleep(ms: number): Promise<void> {
-											return new Promise((resolve) => setTimeout(resolve, ms));
-										}
-
-										await sleep(200);
+									onPress={() => {
 										if (router.canGoBack()) {
 											router.back();
 										} else {
@@ -75,6 +72,7 @@ const MessagesLayout = () => {
 										iconHeight={22}
 										iconWidth={22}
 										style={{ marginHorizontal: 6 }}
+										onPress={() => startOutgoingCall(user, "audio")}
 									/>
 									<BIcon
 										svg={camera}
@@ -83,6 +81,7 @@ const MessagesLayout = () => {
 										iconHeight={22}
 										iconWidth={22}
 										style={{ marginHorizontal: 6 }}
+										onPress={() => startOutgoingCall(user, "video")}
 									/>
 								</View>
 							</>
