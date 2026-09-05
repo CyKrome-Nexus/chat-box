@@ -62,7 +62,7 @@ const buildDisplayData = (messages: IMessage[]): TDisplayItem[] => {
 
 const Chat = () => {
 	const params = useLocalSearchParams();
-	const user: (IChatRibbon & { id?: string }) | null = params.user
+	const user: IChatRibbon | null = params.user
 		? JSON.parse(params.user as string)
 		: null;
 

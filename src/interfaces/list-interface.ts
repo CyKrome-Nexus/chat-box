@@ -12,10 +12,12 @@ interface IRibbonParent {
 
 // Chat
 export interface IChatRibbon extends IRibbonParent {
+    id: string
     lastMessage?: string
     lastStatus?: string
     notificationCount?: number
     status?: "ONLINE"
+    muted?: boolean
 }
 
 export interface IChatList {
