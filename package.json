@@ -12,6 +12,7 @@
     "build:android:split": "cd android && ./gradlew assembleRelease -PreactNative.enableSeparateBuildPerCPUArchitecture=true"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
     "@reduxjs/toolkit": "^2.9.0",
     "babel-preset-expo": "~54.0.0",
     "expo": "~54.0.12",
