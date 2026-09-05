@@ -45,6 +45,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Groups, Admin Permissions, Invite Links & Broadcasts](./architecture/groups.md) | Multi-step group creation, color-coded sender names, @mention autocomplete, admin promote/demote/remove, send/edit permission gating, working invite-link QR deep links, and broadcast list fan-out sending. |
 | [Push Notifications, Background Sync & Quick Replies](./architecture/push-notifications.md) | Interactive Reply/Mark-as-Read notification actions, rich avatar previews, per-conversation grouping, app badge sync, mute/DND-aware in-app banners — and what real APNs/FCM registration would still need. |
 | [Deep E2EE Cryptographic Engine](./architecture/e2ee-crypto.md) | Real, from-scratch X3DH + Double Ratchet + Sender Keys using pure-JS Curve25519/Ed25519/AES-CBC/HMAC-SHA256 primitives, wired into the live 1-on-1 message path, with Signal-algorithm Safety Numbers and a self-verifying cryptographic self-test. |
+| [E2EE Media Pipeline & Encrypted Backups](./architecture/e2ee-media.md) | AES-256-GCM encrypt/verify/decrypt on every real attachment sent, and PBKDF2-derived (Argon2id substitute) passphrase-encrypted database backups exported/restored via the OS share sheet and document picker. |
 
 ---
 

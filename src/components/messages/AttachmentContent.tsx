@@ -94,6 +94,11 @@ const AttachmentContent = ({
 						<Ionicons name="play-circle" size={40} color="#fff" />
 					</View>
 				)}
+				{attachment.mediaEncryptionVerified && (
+					<View style={styles.encryptionBadge}>
+						<Ionicons name="lock-closed" size={10} color="#fff" />
+					</View>
+				)}
 				{isUploading && (
 					<View style={styles.progressOverlay}>
 						<View style={styles.progressTrack}>
@@ -198,6 +203,14 @@ const styles = StyleSheet.create({
 		...StyleSheet.absoluteFillObject,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	encryptionBadge: {
+		position: "absolute",
+		top: 6,
+		right: 6,
+		backgroundColor: "rgba(0,0,0,0.5)",
+		borderRadius: 8,
+		padding: 3,
 	},
 	viewOnceCard: {
 		backgroundColor: "#000",
