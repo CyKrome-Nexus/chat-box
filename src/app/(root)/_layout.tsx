@@ -42,12 +42,33 @@ const RootLayout = () => {
 						return (
 							<>
 								<TouchableOpacity
-									onPressIn={async () => {
-										function sleep(ms: number): Promise<void> {
-											return new Promise((resolve) => setTimeout(resolve, ms));
+									onPress={() => {
+										if (router.canGoBack()) {
+											router.back();
+										} else {
+											router.push("/");
 										}
-
-										await sleep(200);
+									}}
+								>
+									<IconSVG svg={backArrow} includeBorder={false} />
+								</TouchableOpacity>
+							</>
+						);
+					},
+				}}
+			/>
+			<Stack.Screen
+				name="forgot-password"
+				options={{
+					title: "",
+					headerShadowVisible: false,
+					headerBackground: () => <></>,
+					headerBackVisible: false,
+					headerLeft: () => {
+						return (
+							<>
+								<TouchableOpacity
+									onPress={() => {
 										if (router.canGoBack()) {
 											router.back();
 										} else {

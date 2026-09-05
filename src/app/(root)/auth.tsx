@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	Text,
 	View,
@@ -6,6 +6,7 @@ import {
 	TouchableOpacity,
 	KeyboardAvoidingView,
 	Platform,
+	ActivityIndicator,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { router, useLocalSearchParams } from "expo-router";
@@ -15,8 +16,11 @@ import BContainer from "@/src/components/buttons/BContainer";
 import OR from "@/src/components/decorators/OR";
 import { apple, facebook, google } from "@/src/constants/svgs/logos";
 import TextInput from "@/src/components/inputs/TextInput";
+import CountryCodePicker, { COUNTRY_CODES, ICountryCode } from "@/src/components/inputs/CountryCodePicker";
 import Colors from "@/src/constants/Colors";
 import { updateUser } from "@/src/redux/features/userSlice";
+import { AuthError, login, signUp } from "@/src/lib/auth/authService";
+import { isEmailOrPhone, isPhone, isStrongPassword, passwordsMatch } from "@/src/lib/auth/validators";
 import { IUser } from "../../interfaces/user-interface";
 
 const Authentication = () => {
@@ -33,28 +37,83 @@ const Authentication = () => {
 	const params = useLocalSearchParams();
 	const [authType, setAuthType] = useState(params?.authType);
 
-	const [email, setEmail] = useState("");
+	const [identifier, setIdentifier] = useState("");
 	const [name, setName] = useState("");
 	const [phone, setPhone] = useState("");
+	const [countryCode, setCountryCode] = useState<ICountryCode>(COUNTRY_CODES[0]);
 	const [password, setPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
+
+	const [submitError, setSubmitError] = useState("");
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	useEffect(() => {
 		setAuthType((_prev) => params?.authType);
 	}, [params?.authType]);
 
-	const onPressLogin = () => {
-		if (email === "meri.kittu" && password === "iloveyou") {
-			dispatch(
-				updateUser({
-					name: "Hafizun Meri Jaan",
-					username: email,
-					avatar: {
-						url: "https://media-maa3-1.cdn.whatsapp.net/v/t61.24694-24/567675247_841743381745937_7315550492190494280_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5Aa2wGuU9zO8NM8s0iPPEQv0C4QiEJNbiFw8wMW0E4XtQQ2Wg&oe=6901C5DD&_nc_sid=5e03e0&_nc_cat=109",
-					},
-					about: "Sorry Sorry Sorry I love you ❤️",
-				})
-			);
+	const errors = useMemo(() => {
+		if (authType === "login") {
+			return {
+				identifier: identifier && !isEmailOrPhone(identifier) ? "Enter a valid email or phone number" : "",
+				password: password && password.length === 0 ? "Password is required" : "",
+			};
+		}
+
+		return {
+			name: name && name.trim().length < 2 ? "Enter your full name" : "",
+			phone: phone && !isPhone(phone) ? "Enter a valid phone number" : "",
+			password: password && !isStrongPassword(password)
+				? "At least 8 characters, with a letter and a number"
+				: "",
+			confirmPassword:
+				confirmPassword && !passwordsMatch(password, confirmPassword)
+					? "Passwords do not match"
+					: "",
+		};
+	}, [authType, identifier, password, name, phone, confirmPassword]);
+
+	const isFormValid = useMemo(() => {
+		if (authType === "login") {
+			return isEmailOrPhone(identifier) && password.length > 0;
+		}
+		return (
+			name.trim().length >= 2 &&
+			isPhone(phone) &&
+			isStrongPassword(password) &&
+			passwordsMatch(password, confirmPassword)
+		);
+	}, [authType, identifier, password, name, phone, confirmPassword]);
+
+		const onPressSubmit = async () => {
+		setSubmitError("");
+		if (!isFormValid || isSubmitting) return;
+
+		setIsSubmitting(true);
+		try {
+			if (authType === "login") {
+				const stored = await login({ identifier, password });
+				dispatch(
+					updateUser({
+						name: stored.name,
+						username: stored.identifier,
+						avatar: stored.avatarUrl ? { url: stored.avatarUrl } : undefined,
+						about: stored.about,
+					})
+				);
+			} else {
+				const fullPhone = `${countryCode.code}${phone.trim()}`;
+				const stored = await signUp({ name: name.trim(), identifier: fullPhone, password });
+				dispatch(
+					updateUser({
+						name: stored.name,
+						username: stored.identifier,
+					})
+				);
+			}
+		} catch (e) {
+			setSubmitError(e instanceof AuthError ? e.message : "Something went wrong. Please try again.");
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
@@ -90,16 +149,18 @@ const Authentication = () => {
 								<OR barColor="#E6E8E7" />
 								<View style={styles.inputsWrapper}>
 									<TextInput
-										value={email}
-										onChange={setEmail}
-										label="Your email"
+										value={identifier}
+										onChange={setIdentifier}
+										label="Email or phone number"
 										labelColor={Colors.focused}
+										error={errors.identifier}
 									/>
 									<TextInput
 										value={password}
 										onChange={setPassword}
 										label="Password"
 										isPassword={true}
+										error={errors.password}
 									/>
 								</View>
 							</>
@@ -122,39 +183,56 @@ const Authentication = () => {
 										onChange={setName}
 										label="Full Name"
 										labelColor={Colors.focused}
+										error={errors.name}
 									/>
 									<TextInput
 										value={phone}
 										onChange={setPhone}
 										label="Your Phone"
 										labelColor={Colors.focused}
+										keyboardType="phone-pad"
+										error={errors.phone}
+										leftAccessory={
+											<CountryCodePicker value={countryCode} onChange={setCountryCode} />
+										}
 									/>
 									<TextInput
 										value={password}
 										onChange={setPassword}
 										label="Password"
 										isPassword={true}
+										error={errors.password}
 									/>
 									<TextInput
 										value={confirmPassword}
 										onChange={setConfirmPassword}
 										label="Confirm Password"
 										isPassword={true}
+										error={errors.confirmPassword}
 									/>
 								</View>
 							</>
 						)}
+						{!!submitError && <Text style={styles.submitError}>{submitError}</Text>}
 					</View>
 				</ScrollView>
 				{/* BOTTOM ACTIONS */}
 				<View style={styles.bottomContainer}>
-					<TouchableOpacity style={styles.loginButton} onPress={onPressLogin}>
-						<Text style={styles.loginText}>
-							{authType === "login" ? "Log in" : "Sign up"}
-						</Text>
+					<TouchableOpacity
+						style={[styles.loginButton, isFormValid && styles.loginButtonActive]}
+						disabled={!isFormValid || isSubmitting}
+						onPress={onPressSubmit}
+					>
+						{isSubmitting ? (
+							<ActivityIndicator color={isFormValid ? "#fff" : "gray"} />
+						) : (
+							<Text style={[styles.loginText, isFormValid && styles.loginTextActive]}>
+								{authType === "login" ? "Log in" : "Sign up"}
+							</Text>
+						)}
 					</TouchableOpacity>
 					{authType === "login" && (
-						<TouchableOpacity>
+						<TouchableOpacity onPress={() => router.push("/(root)/forgot-password")}>
 							<Text style={{ color: Colors.focused }}>Forgot password?</Text>
 						</TouchableOpacity>
 					)}
@@ -239,6 +317,11 @@ const styles = StyleSheet.create({
 		gap: 14,
 		marginBottom: 16,
 	},
+	submitError: {
+		color: "#F04A4C",
+		textAlign: "center",
+		marginTop: 8,
+	},
 	bottomContainer: {
 		width: "100%",
 		justifyContent: "center",
@@ -253,12 +336,18 @@ const styles = StyleSheet.create({
 		padding: 15,
 		borderRadius: 20,
 	},
+	loginButtonActive: {
+		backgroundColor: Colors.focused,
+	},
 	loginText: {
 		fontSize: 20,
 		fontFamily: "Inter 18pt Bold",
 		fontWeight: "bold",
 		color: "gray",
 		textAlign: "center",
+	},
+	loginTextActive: {
+		color: "#fff",
 	},
 });
 
