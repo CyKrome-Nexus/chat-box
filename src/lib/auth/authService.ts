@@ -32,6 +32,17 @@ const saveUsers = (users: IStoredUser[]) => AsyncStorage.setItem(USERS_KEY, JSON
 
 const normalize = (identifier: string) => identifier.trim().toLowerCase();
 
+/**
+ * Looks up which of the given identifiers (phone numbers/emails/usernames)
+ * already have a local account — used to flag device contacts as
+ * "on Chatbox" without a real backend to query.
+ */
+export const findRegisteredIdentifiers = async (identifiers: string[]): Promise<Set<string>> => {
+    const users = await getUsers();
+    const registered = new Set(users.map((u) => u.identifier));
+    return new Set(identifiers.filter((id) => registered.has(normalize(id))));
+};
+
 export const signUp = async ({
     name,
     identifier,

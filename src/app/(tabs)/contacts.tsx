@@ -1,98 +1,91 @@
-import { useState } from "react";
-import { StyleSheet, View, Text } from "react-native";
+import { useMemo, useState } from "react";
+import { StyleSheet, View, Text, TextInput } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
+import { useSelector } from "react-redux";
+import { Ionicons } from "@expo/vector-icons";
 
 import ListDrawer from "@/src/components/ListDrawer";
 import { IContactRibbon } from "@/src/interfaces/list-interface";
 import ContactRibbon from "@/src/components/riboons/ContactRibbon";
+import AddContactModal from "@/src/components/riboons/AddContactModal";
+import ContactProfileModal from "@/src/components/riboons/ContactProfileModal";
+import { useDeviceContacts } from "@/src/hooks/useDeviceContacts";
 
 const Contacts = () => {
-	const [contacts, setContacts] = useState<IContactRibbon[]>([
-		{
-			avatar: { url: "https://randomuser.me/api/portraits/men/12.jpg" },
-			name: "Aarav Mehta",
-			about: "Loves hiking and outdoor adventures.",
-		},
-		{
-			avatar: { url: "https://randomuser.me/api/portraits/women/43.jpg" },
-			name: "Anika Singh",
-			about: "Graphic designer and coffee enthusiast.",
-		},
-		{
-			avatar: { url: "https://randomuser.me/api/portraits/men/65.jpg" },
-			name: "Rohit Kapoor",
-			about: "Passionate about tech startups.",
-		},
-		{
-			avatar: { url: "https://randomuser.me/api/portraits/women/29.jpg" },
-			name: "Simran Kaur",
-			about: "Loves painting and yoga.",
-		},
-		{
-			avatar: { url: "https://randomuser.me/api/portraits/men/34.jpg" },
-			name: "Vikram Gupta",
-			about: "Photographer and traveller.",
-		},
-		{
-			avatar: { url: "https://randomuser.me/api/portraits/women/50.jpg" },
-			name: "Neha Patel",
-			about: "Foodie and aspiring chef.",
-		},
-		{
-			avatar: { url: "https://randomuser.me/api/portraits/men/70.jpg" },
-			name: "Aditya Singh",
-		},
-		{
-			avatar: { url: "https://randomuser.me/api/portraits/women/12.jpg" },
-			name: "Meera Joshi",
-			about: "Yoga instructor and wellness coach.",
-		},
-		{
-			avatar: { url: "https://randomuser.me/api/portraits/men/25.jpg" },
-			name: "Sandeep Jain",
-			about: "Enthusiast of classic literature.",
-		},
-		{
-			avatar: { url: "https://randomuser.me/api/portraits/women/32.jpg" },
-			name: "Pooja Sharma",
-			about: "Digital marketing specialist.",
-		},
-	]);
+	const { contacts: deviceContacts, isLoading, permissionDenied } = useDeviceContacts();
+	const manualContacts = useSelector((state: any) => state.contacts.manualContacts as IContactRibbon[]);
+	const [query, setQuery] = useState("");
+	const [profileContact, setProfileContact] = useState<IContactRibbon | null>(null);
 
-	const flatListData = prepareAlphabetSections(contacts);
+	const allContacts = useMemo(
+		() => [...manualContacts, ...deviceContacts],
+		[manualContacts, deviceContacts]
+	);
+
+	const filteredContacts = useMemo(() => {
+		if (!query.trim()) return allContacts;
+		const q = query.trim().toLowerCase();
+		return allContacts.filter(
+			(c) => c.name.toLowerCase().includes(q) || c.phoneNumber?.toLowerCase().includes(q)
+		);
+	}, [allContacts, query]);
+
+	const flatListData = prepareAlphabetSections(filteredContacts);
 
 	return (
 		<>
 			<View style={styles.container}>
 				<ListDrawer>
-					<FlatList
-						data={flatListData}
-						keyExtractor={(item, index) =>
-							item.type === "header"
-								? `header-${item.letter}-${index}`
-								: item.name
-						}
-						renderItem={({ item }) => {
-							if (item.type === "header") {
-								return (
-									<View
-										style={{
-											paddingHorizontal: 16,
-											paddingVertical: 4,
-											backgroundColor: "#fff",
-										}}
-									>
-										<Text style={{ fontWeight: "bold", fontSize: 18 }}>
-											{item.letter}
-										</Text>
-									</View>
-								);
+					<View style={styles.searchRow}>
+						<Ionicons name="search" size={16} color="#797C7B" />
+						<TextInput
+							style={styles.searchInput}
+							placeholder="Search name or phone number"
+							placeholderTextColor="#797C7B"
+							value={query}
+							onChangeText={setQuery}
+						/>
+					</View>
+					{permissionDenied && (
+						<Text style={styles.notice}>
+							Contacts permission denied — showing manually added contacts only.
+						</Text>
+					)}
+					{isLoading && !deviceContacts.length ? (
+						<Text style={styles.notice}>Loading contacts…</Text>
+					) : (
+						<FlatList
+							data={flatListData}
+							keyExtractor={(item, index) =>
+								item.type === "header"
+									? `header-${item.letter}-${index}`
+									: item.id
 							}
-							return <ContactRibbon content={item} />;
-						}}
-					/>
+							renderItem={({ item }) => {
+								if (item.type === "header") {
+									return (
+										<View
+											style={{
+												paddingHorizontal: 16,
+												paddingVertical: 4,
+												backgroundColor: "#fff",
+											}}
+										>
+											<Text style={{ fontWeight: "bold", fontSize: 18 }}>
+												{item.letter}
+											</Text>
+										</View>
+									);
+								}
+								return <ContactRibbon content={item} onLongPressContact={setProfileContact} />;
+							}}
+						/>
+					)}
 				</ListDrawer>
 			</View>
+
+			<AddContactModal />
+			<ContactProfileModal contact={profileContact} onClose={() => setProfileContact(null)} />
 		</>
 	);
 };
@@ -104,26 +97,27 @@ const styles = StyleSheet.create({
 		flexDirection: "column-reverse",
 		height: "100%",
 	},
-	messagesContainer: { flex: 1, backgroundColor: "white" },
-	messageRow: {
+	searchRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		padding: 12,
-		borderBottomWidth: 1,
-		borderColor: "#ddd",
-	},
-	avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-	name: { fontWeight: "bold" },
-	statusesContainer: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		backgroundColor: "white",
+		gap: 8,
+		marginHorizontal: 4,
+		marginBottom: 8,
+		paddingHorizontal: 14,
 		paddingVertical: 10,
+		backgroundColor: "#F3F6F6",
+		borderRadius: 14,
 	},
-	statusItem: { alignItems: "center", marginHorizontal: 10 },
-	statusAvatar: { width: 60, height: 60, borderRadius: 30, marginBottom: 4 },
+	searchInput: {
+		flex: 1,
+		fontSize: 15,
+		color: "#222",
+	},
+	notice: {
+		color: "#797C7B",
+		textAlign: "center",
+		paddingVertical: 20,
+	},
 });
 
 export default Contacts;

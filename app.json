@@ -54,7 +54,13 @@
       ],
       "expo-web-browser",
       "expo-apple-authentication",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Chatbox needs access to your contacts to help you find friends already using Chatbox."
+        }
+      ]
     ]
   }
 }
