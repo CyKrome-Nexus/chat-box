@@ -21,7 +21,8 @@ Picked media is appended to the conversation as a normal `IMessage` carrying an 
   - `location`: coordinates, tapping opens the device's maps app via `Linking`.
 - **`src/components/messages/MediaViewerModal.tsx`** — fullscreen image viewer with pinch-to-zoom
   and pan, built on `react-native-gesture-handler` + `react-native-reanimated` (no extra zoom
-  library dependency).
+  library dependency). It also has a fade/scale entrance and a drag-to-dismiss gesture when not
+  zoomed in — see `docs/architecture/micro-animations.md`.
 
 ## Simulated Upload Progress
 

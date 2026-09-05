@@ -27,4 +27,13 @@ export interface IMessage {
     timestamp: number;
     status?: TMessageStatus;
     attachment?: IAttachment;
+    /**
+     * A lightweight quote of the message this one is replying to (swipe-to-
+     * reply — see docs/architecture/micro-animations.md). Full reply
+     * threading/jump-to-message is out of scope here.
+     */
+    replyTo?: {
+        text: string;
+        isSender: boolean;
+    };
 }
