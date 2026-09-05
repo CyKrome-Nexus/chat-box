@@ -9,7 +9,7 @@ import {
 	TouchableWithoutFeedback,
 	Keyboard,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -37,6 +37,7 @@ import { useVoiceRecorder } from "@/src/hooks/useVoiceRecorder";
 import { useVideoNoteRecorder } from "@/src/hooks/useVideoNoteRecorder";
 import { audioPlaybackManager } from "@/src/lib/audio/playbackManager";
 import { formatDuration } from "@/src/lib/audio/format";
+import { mediaComposerBridge } from "@/src/lib/media/mediaComposerBridge";
 import { IAttachment, IMessage } from "@/src/interfaces/message-interface";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
 
@@ -188,11 +189,11 @@ const Chat = () => {
 		setSelection({ start: cursor, end: cursor });
 	};
 
-	const sendAttachmentMessage = (attachment: IAttachment) => {
+	const sendAttachmentMessage = (attachment: IAttachment, caption: string = "") => {
 		const message: IMessage = {
 			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
 			conversationId,
-			text: "",
+			text: caption,
 			type: "sender",
 			timestamp: Date.now(),
 		};
@@ -216,6 +217,14 @@ const Chat = () => {
 	};
 
 	const handleAttachmentOption = async (option: TAttachmentOption) => {
+		if (option === "camera") {
+			mediaComposerBridge.waitForResult((result) => {
+				if (result) sendAttachmentMessage(result.attachment, result.caption);
+			});
+			router.push("/camera-capture");
+			return;
+		}
+
 		const attachment = await pickAttachment(option);
 		if (attachment) sendAttachmentMessage(attachment);
 	};

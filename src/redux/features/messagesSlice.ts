@@ -96,6 +96,15 @@ export const messagesSlice = createSlice({
                 if (progress >= 100) message.status = "sent";
             }
         },
+        /** Marks a "view once" attachment as opened, so it renders as consumed afterward. */
+        markAttachmentViewed: (
+            state,
+            action: PayloadAction<{ conversationId: string; messageId: string }>
+        ) => {
+            const { conversationId, messageId } = action.payload;
+            const message = findMessage(state, conversationId, messageId);
+            if (message?.attachment) message.attachment.viewOnceOpened = true;
+        },
         /** Settings > Chat > "Clear all chats". */
         clearAllMessages: (state) => {
             state.byConversation = {};
@@ -115,6 +124,7 @@ export const {
     receiveMessage,
     seedConversation,
     updateAttachmentProgress,
+    markAttachmentViewed,
     clearAllMessages,
     hydrateMessages,
 } = messagesSlice.actions;

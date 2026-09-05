@@ -18,6 +18,10 @@ export interface IAttachment {
     duration?: number;
     /** Audio attachments only: a normalized (0-1) amplitude sample set. */
     waveform?: number[];
+    /** Image/video attachments only: ephemeral "view once" media (see media-editor.md). */
+    viewOnce?: boolean;
+    /** Image/video attachments only: set once the recipient has opened a view-once attachment. */
+    viewOnceOpened?: boolean;
 }
 
 export interface IMessage {

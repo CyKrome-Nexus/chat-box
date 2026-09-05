@@ -17,20 +17,9 @@ export const useAttachmentPicker = () => {
 	const pickAttachment = useCallback(
 		async (option: TAttachmentOption): Promise<IAttachment | null> => {
 			switch (option) {
-				case "camera": {
-					const permission = await ImagePicker.requestCameraPermissionsAsync();
-					if (!permission.granted) {
-						Alert.alert("Camera access needed", "Enable camera access in Settings to take photos.");
-						return null;
-					}
-
-					const result = await ImagePicker.launchCameraAsync({
-						mediaTypes: ["images", "videos"],
-						quality: 0.8,
-					});
-					return toAttachment(result);
-				}
-
+				// "camera" is handled by Chat.tsx before this is ever called — it
+				// opens the in-app camera/editor flow (see media-editor.md)
+				// instead of the system camera app.
 				case "gallery": {
 					const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 					if (!permission.granted) {
