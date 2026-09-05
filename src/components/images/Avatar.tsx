@@ -21,9 +21,9 @@ const Avatar = ({
     const [imageError, setImageError] = useState(false);
 
     const urls =
-        "urls" in (data || {})
-            ? (data as { urls?: string[] }).urls?.slice(0, 4) || []
-            : data?.url
+        data && "urls" in data
+            ? data.urls?.slice(0, 4) || []
+            : data && "url" in data && data.url
             ? [data.url]
             : [];
 

@@ -84,7 +84,7 @@ const Authentication = () => {
 									continue using
 								</Text>
 								<BContainer
-									svgs={[facebook, google, apple.dark]}
+									svgs={[facebook, google, apple.dark ?? apple.default]}
 									borderColor={"black"}
 								/>
 								<OR barColor="#E6E8E7" />

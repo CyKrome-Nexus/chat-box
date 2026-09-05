@@ -6,7 +6,7 @@ const BContainer = ({
    svgs,
    borderColor = 'white'
 }: {
-   svgs: IIconSVG[] | string[],
+   svgs: (IIconSVG | string)[],
    borderColor?: string
 }) => {
    return (
