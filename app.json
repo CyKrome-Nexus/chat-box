@@ -60,6 +60,12 @@
         {
           "contactsPermission": "Chatbox needs access to your contacts to help you find friends already using Chatbox."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Chatbox needs access to your camera to scan QR codes."
+        }
       ]
     ]
   }
