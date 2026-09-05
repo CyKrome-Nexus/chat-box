@@ -40,3 +40,16 @@ without throwing a build-time error, so these files need visual/manual review af
 `CarmeText` (`src/components/Themed/CarmeText.tsx`) wraps RN's `Text` with the app's custom font.
 Its prop type must extend `TextProps` from `react-native`, not `react-native-svg` — the two
 packages both export an unrelated type named `TextProps`.
+
+## 5. Settings Screen & Tab Header Navigation
+
+`src/app/(tabs)/settings.tsx` and `src/app/(tabs)/_layout.tsx`:
+
+- Icon buttons (`BIcon`) with destructive or navigational side effects (e.g. logout) must never
+  be wired to an unrelated icon's `onPress` — the settings QR icon previously triggered
+  `logoutUser` by mistake. Until the QR sharing/scanner screen exists, action-less icons should
+  have no `onPress` handler rather than a placeholder that does the wrong thing.
+- The Settings tab's header back button navigates with `router.back()` (falling back to
+  `router.push("/")`) directly inside `onPress`. Do not add artificial `await sleep(ms)` delays
+  before navigating — they only introduce a window for accidental double-taps/race conditions
+  without providing any benefit.
