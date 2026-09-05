@@ -1,7 +1,9 @@
 import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useDispatch } from "react-redux";
 
 import { IAttachment } from "@/src/interfaces/message-interface";
+import { markAttachmentViewed } from "@/src/redux/features/messagesSlice";
 import AudioMessageBubble from "./AudioMessageBubble";
 import VideoNoteBubble from "./VideoNoteBubble";
 
@@ -26,6 +28,8 @@ const AttachmentContent = ({
 	onPressImage?: (uri: string) => void;
 	onPressVideoNote?: (uri: string) => void;
 }) => {
+	const dispatch = useDispatch();
+
 	if (attachment.type === "audio") {
 		return (
 			<AudioMessageBubble
@@ -48,6 +52,31 @@ const AttachmentContent = ({
 	}
 
 	const isUploading = (attachment.uploadProgress ?? 100) < 100;
+
+	// "View once" media is only gated for the recipient side — the sender
+	// already knows what they sent (see docs/architecture/media-editor.md).
+	if ((attachment.type === "image" || attachment.type === "video") && attachment.viewOnce && !isSender) {
+		if (attachment.viewOnceOpened) {
+			return (
+				<View style={[styles.mediaWrapper, styles.viewOnceCard]}>
+					<Ionicons name="checkmark-done" size={22} color="rgba(255,255,255,0.6)" />
+					<Text style={styles.viewOnceLabel}>Opened</Text>
+				</View>
+			);
+		}
+		return (
+			<TouchableOpacity
+				style={[styles.mediaWrapper, styles.viewOnceCard]}
+				onPress={() => {
+					dispatch(markAttachmentViewed({ conversationId, messageId }));
+					if (attachment.uri) onPressImage?.(attachment.uri);
+				}}
+			>
+				<Ionicons name="flame" size={26} color="#fff" />
+				<Text style={styles.viewOnceLabel}>Tap to view once</Text>
+			</TouchableOpacity>
+		);
+	}
 
 	if (attachment.type === "image" || attachment.type === "video") {
 		return (
@@ -157,6 +186,16 @@ const styles = StyleSheet.create({
 		...StyleSheet.absoluteFillObject,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	viewOnceCard: {
+		backgroundColor: "#000",
+		justifyContent: "center",
+		alignItems: "center",
+		gap: 6,
+	},
+	viewOnceLabel: {
+		color: "#fff",
+		fontSize: 12,
 	},
 	progressOverlay: {
 		position: "absolute",

@@ -35,6 +35,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Profile & QR Code](./architecture/profile-qr.md) | Profile view/edit, avatar cropping, QR code generation/sharing, QR scanner. |
 | [Fluid Micro-Animations & Gestures](./architecture/micro-animations.md) | Swipe-to-reply, keyboard-interactive input bar, morphing send/mic button, lightbox drag-to-dismiss, animated status ticks. |
 | [Telegram-Style Circular Video Notes](./architecture/video-notes.md) | Tap-to-toggle voice/video mic mode, circular front-camera recording with progress ring, autoplay-muted playback bubble, fullscreen viewer. |
+| [In-App Camera, Media Compressor & Editor](./architecture/media-editor.md) | In-app camera (tap/hold, flash, zoom, flip), crop/rotate/doodle/text/sticker editor with view-shot baking, caption + view-once, WEBP compression. |
 
 ---
 
