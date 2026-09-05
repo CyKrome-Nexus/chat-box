@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { useSelector } from "react-redux";
 
 import ListDrawer from "@/src/components/ListDrawer";
@@ -18,7 +18,6 @@ import { FlatList } from "react-native-gesture-handler";
 import { useState } from "react";
 import { ISettingsRibbon } from "@/src/interfaces/list-interface";
 import SettingsRibbon from "@/src/components/riboons/SettingsRibbon";
-import { updateUser } from "@/src/redux/features/userSlice";
 import { router } from "expo-router";
 
 const Settings = () => {
@@ -61,7 +60,7 @@ const Settings = () => {
 		<>
 			<View style={styles.container}>
 				<ListDrawer>
-					<View style={styles.userRibbon}>
+					<TouchableOpacity style={styles.userRibbon} onPress={() => router.push("/profile")}>
 						<Avatar data={user?.avatar} size={70} />
 						<View style={styles.userAbout}>
 							<Text style={{ fontSize: 22, fontWeight: "bold" }}>
@@ -71,9 +70,8 @@ const Settings = () => {
 								{user?.about}
 							</Text>
 						</View>
-						{/* TODO: wire up to the QR sharing/scanner screen (tracked separately) */}
-						<BIcon svg={qr} />
-					</View>
+						<BIcon svg={qr} onPress={() => router.push("/qr-code")} />
+					</TouchableOpacity>
 					<FlatList
 						style={{ marginTop: 20 }}
 						data={settingsList}

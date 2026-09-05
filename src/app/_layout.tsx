@@ -41,6 +41,9 @@ const AppGate = () => {
 				<Stack.Screen name="(root)" />
 				<Stack.Screen name="(tabs)" />
 				<Stack.Screen name="call" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
+				<Stack.Screen name="profile" options={{ presentation: "modal" }} />
+				<Stack.Screen name="qr-code" options={{ presentation: "modal" }} />
+				<Stack.Screen name="qr-scanner" options={{ presentation: "fullScreenModal" }} />
 			</Stack>
 		</GestureHandlerRootView>
 	);

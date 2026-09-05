@@ -78,9 +78,9 @@ export default function TabLayout() {
 						const user = useSelector((state: { user: IUser }) => state.user);
 						return (
 							<>
-								<View style={{ marginRight: 30 }}>
+								<TouchableOpacity style={{ marginRight: 30 }} onPress={() => router.push("/profile")}>
 									<Avatar data={user?.avatar} />
-								</View>
+								</TouchableOpacity>
 							</>
 						);
 					},
