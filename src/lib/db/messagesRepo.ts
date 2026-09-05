@@ -4,15 +4,16 @@ import { IMessage, TAttachmentType } from "@/src/interfaces/message-interface";
 export const upsertMessage = async (conversationId: string, message: IMessage) => {
     const db = await getDatabase();
     await db.runAsync(
-        `INSERT INTO messages (id, conversation_id, direction, content_type, content, media_url, media_size, duration, status, is_deleted, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+        `INSERT INTO messages (id, conversation_id, direction, content_type, content, media_url, media_size, duration, status, expires_at, is_deleted, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
          ON CONFLICT(id) DO UPDATE SET
             content = excluded.content,
             content_type = excluded.content_type,
             media_url = excluded.media_url,
             media_size = excluded.media_size,
             duration = excluded.duration,
-            status = excluded.status`,
+            status = excluded.status,
+            expires_at = excluded.expires_at`,
         [
             message.id,
             conversationId,
@@ -23,6 +24,7 @@ export const upsertMessage = async (conversationId: string, message: IMessage) =
             message.attachment?.size || null,
             message.attachment?.duration || null,
             message.status || null,
+            message.expiresAt || null,
             message.timestamp,
         ]
     );
@@ -67,6 +69,7 @@ const rowToMessage = (row: any): IMessage => ({
     type: row.direction === "receiver" ? "receiver" : "sender",
     timestamp: row.created_at,
     status: row.status || undefined,
+    expiresAt: row.expires_at || undefined,
     attachment:
         row.content_type && row.content_type !== "text"
             ? {

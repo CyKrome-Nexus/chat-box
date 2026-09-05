@@ -3,14 +3,29 @@ import { useDispatch, useSelector } from "react-redux";
 
 import SettingsScreenHeader from "@/src/components/settings/SettingsScreenHeader";
 import SettingToggleRow from "@/src/components/settings/SettingToggleRow";
-import { setPrivacyPref } from "@/src/redux/features/settingsSlice";
+import VisibilityPickerRow from "@/src/components/settings/VisibilityPickerRow";
+import {
+	setAutoLockTimeout,
+	setBiometricLockEnabled,
+	setPrivacyPref,
+	setPrivacyVisibility,
+	TAutoLockTimeout,
+} from "@/src/redux/features/settingsSlice";
 import { deleteAccount } from "@/src/lib/auth/authService";
 import { logoutUser } from "@/src/lib/features";
 import { IUser } from "@/src/interfaces/user-interface";
 
+const AUTO_LOCK_OPTIONS: { key: TAutoLockTimeout; label: string }[] = [
+	{ key: "immediately", label: "Immediately" },
+	{ key: "1min", label: "1 min" },
+	{ key: "15min", label: "15 min" },
+	{ key: "1hour", label: "1 hour" },
+];
+
 const SettingsAccount = () => {
 	const dispatch = useDispatch();
 	const privacy = useSelector((state: any) => state.settings.privacy);
+	const security = useSelector((state: any) => state.settings.security);
 	const user = useSelector((state: { user: IUser | null }) => state.user);
 
 	const handleDeleteAccount = () => {
@@ -36,11 +51,21 @@ const SettingsAccount = () => {
 			<SettingsScreenHeader title="Account" />
 
 			<Text style={styles.sectionTitle}>Privacy</Text>
-			<SettingToggleRow
+			<VisibilityPickerRow
 				label="Last Seen & Online"
-				description="Show others when you were last active"
-				value={privacy.lastSeen}
-				onValueChange={(value) => dispatch(setPrivacyPref({ key: "lastSeen", value }))}
+				description="Who can see when you were last active"
+				value={privacy.lastSeenVisibility}
+				onValueChange={(value) => dispatch(setPrivacyVisibility({ key: "lastSeenVisibility", value }))}
+			/>
+			<VisibilityPickerRow
+				label="Profile Photo"
+				value={privacy.profilePhotoVisibility}
+				onValueChange={(value) => dispatch(setPrivacyVisibility({ key: "profilePhotoVisibility", value }))}
+			/>
+			<VisibilityPickerRow
+				label="About"
+				value={privacy.aboutVisibility}
+				onValueChange={(value) => dispatch(setPrivacyVisibility({ key: "aboutVisibility", value }))}
 			/>
 			<SettingToggleRow
 				label="Read Receipts"
@@ -56,6 +81,35 @@ const SettingsAccount = () => {
 				value={privacy.twoFactorEnabled}
 				onValueChange={(value) => dispatch(setPrivacyPref({ key: "twoFactorEnabled", value }))}
 			/>
+			<SettingToggleRow
+				label="Biometric App Lock"
+				description="Require Face ID, Touch ID, or your device PIN to open Chatbox"
+				value={security.biometricLockEnabled}
+				onValueChange={(value) => dispatch(setBiometricLockEnabled(value))}
+			/>
+			{security.biometricLockEnabled && (
+				<View style={styles.autoLockRow}>
+					<Text style={styles.autoLockLabel}>Auto-Lock After</Text>
+					<View style={styles.autoLockOptions}>
+						{AUTO_LOCK_OPTIONS.map((option) => (
+							<TouchableOpacity
+								key={option.key}
+								style={[styles.autoLockChip, security.autoLockTimeout === option.key && styles.autoLockChipActive]}
+								onPress={() => dispatch(setAutoLockTimeout(option.key))}
+							>
+								<Text
+									style={[
+										styles.autoLockChipText,
+										security.autoLockTimeout === option.key && styles.autoLockChipTextActive,
+									]}
+								>
+									{option.label}
+								</Text>
+							</TouchableOpacity>
+						))}
+					</View>
+				</View>
+			)}
 			<TouchableOpacity
 				style={styles.linkRow}
 				onPress={() =>
@@ -113,5 +167,36 @@ const styles = StyleSheet.create({
 		color: "#fff",
 		fontWeight: "700",
 		fontSize: 15,
+	},
+	autoLockRow: {
+		paddingVertical: 12,
+		borderBottomWidth: 1,
+		borderBottomColor: "#F0F0F0",
+	},
+	autoLockLabel: {
+		fontSize: 13,
+		color: "#797C7B",
+		marginBottom: 8,
+	},
+	autoLockOptions: {
+		flexDirection: "row",
+		gap: 8,
+	},
+	autoLockChip: {
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 14,
+		backgroundColor: "#F2F8F7",
+	},
+	autoLockChipActive: {
+		backgroundColor: "#24786D",
+	},
+	autoLockChipText: {
+		fontSize: 12,
+		fontWeight: "600",
+		color: "#24786D",
+	},
+	autoLockChipTextActive: {
+		color: "#fff",
 	},
 });

@@ -28,6 +28,8 @@ export interface IChatRibbon extends IRibbonParent {
      * (#33) exist. See docs/architecture/chat-organization.md.
      */
     isGroup?: boolean
+    /** Disappearing Messages timer for this conversation. "off" (default) means messages never expire. */
+    disappearingTimer?: "off" | "24h" | "7d" | "90d"
 }
 
 export interface IChatList {

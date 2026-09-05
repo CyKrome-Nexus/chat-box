@@ -14,7 +14,10 @@ import { useOfflineDbSync } from "../hooks/useOfflineDbSync";
 import { useNetworkSync } from "../hooks/useNetworkSync";
 import { useCallKeepIntegration } from "../hooks/useCallKeepIntegration";
 import { useIncomingCallNotification } from "../hooks/useIncomingCallNotification";
+import { useAppLock } from "../hooks/useAppLock";
+import { useDisappearingMessagesSweep } from "../hooks/useDisappearingMessagesSweep";
 import FloatingCallBubble from "../components/calling/FloatingCallBubble";
+import AppLockScreen from "../components/security/AppLockScreen";
 import { Stack } from "expo-router";
 
 SplashScreen.preventAutoHideAsync();
@@ -36,6 +39,8 @@ const AppGate = () => {
 	useRealtimeConnection(userId);
 	useCallKeepIntegration();
 	useIncomingCallNotification();
+	useDisappearingMessagesSweep();
+	const { isLocked, unlock } = useAppLock();
 
 	useEffect(() => {
 		if (sessionStatus === "ready") {
@@ -71,6 +76,7 @@ const AppGate = () => {
 				<Stack.Screen name="settings-storage" />
 			</Stack>
 			<FloatingCallBubble />
+			<AppLockScreen visible={isLocked} onUnlock={unlock} />
 			</KeyboardProvider>
 		</GestureHandlerRootView>
 	);

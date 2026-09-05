@@ -89,6 +89,17 @@ const runMigrations = async (db: SQLiteDatabase) => {
         );
     `);
 
+    // Additive migration for databases created before Disappearing Messages
+    // (see docs/architecture/security-privacy.md) — `CREATE TABLE IF NOT
+    // EXISTS` above doesn't add columns to an already-existing table, so a
+    // guarded `ALTER TABLE` (SQLite errors on a column that already exists)
+    // is this codebase's pattern for that.
+    try {
+        await db.execAsync(`ALTER TABLE messages ADD COLUMN expires_at INTEGER;`);
+    } catch {
+        // Column already exists.
+    }
+
     // Full-text index for the global/in-chat search engine (see
     // docs/architecture/search.md). Kept as a separate, manually-synced FTS5
     // table (searchRepo.ts) rather than an "external content" table tied to

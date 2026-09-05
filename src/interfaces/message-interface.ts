@@ -49,6 +49,8 @@ export interface IMessage {
      * `deleteMessage` ("Delete for Me").
      */
     deletedForEveryone?: boolean;
+    /** Disappearing Messages — set when composed/received in a conversation with an active timer. See security-privacy.md. */
+    expiresAt?: number;
     /**
      * A quote of the message this one is replying to (swipe-to-reply, or the
      * long-press "Reply" action — see docs/architecture/micro-animations.md

@@ -102,6 +102,13 @@ export const chatsSlice = createSlice({
             const chat = state.chats.find((c) => c.id === action.payload);
             if (chat) chat.archived = false;
         },
+        setDisappearingTimer: (
+            state,
+            action: PayloadAction<{ chatId: string; timer: IChatRibbon["disappearingTimer"] }>
+        ) => {
+            const chat = state.chats.find((c) => c.id === action.payload.chatId);
+            if (chat) chat.disappearingTimer = action.payload.timer;
+        },
         /** Replaces the list with what's in the local database on startup. */
         hydrateChats: (state, action: PayloadAction<IChatRibbon[]>) => {
             state.chats = action.payload;
@@ -134,6 +141,7 @@ export const {
     markChatRead,
     markChatUnread,
     unarchiveChat,
+    setDisappearingTimer,
     hydrateChats,
 } = chatsSlice.actions;
 export default chatsSlice.reducer;
