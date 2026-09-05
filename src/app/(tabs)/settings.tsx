@@ -1,5 +1,5 @@
 import { StyleSheet, View, Text } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 
 import ListDrawer from "@/src/components/ListDrawer";
 import { IUser } from "@/src/interfaces/user-interface";
@@ -20,11 +20,9 @@ import { ISettingsRibbon } from "@/src/interfaces/list-interface";
 import SettingsRibbon from "@/src/components/riboons/SettingsRibbon";
 import { updateUser } from "@/src/redux/features/userSlice";
 import { router } from "expo-router";
-import { logoutUser } from "@/src/lib/features";
 
 const Settings = () => {
 	const user = useSelector((state: { user: IUser }) => state.user);
-	const dispatch = useDispatch();
 
 	const [settingsList, setSettingsList] = useState<ISettingsRibbon[]>([
 		{
@@ -44,7 +42,7 @@ const Settings = () => {
 		},
 		{
 			title: "Help",
-			description: "Hep Center, Contact Us, Privacy Policy etc",
+			description: "Help Center, Contact Us, Privacy Policy etc",
 			svg: question,
 		},
 		{
@@ -54,7 +52,7 @@ const Settings = () => {
 		},
 		{
 			title: "Invite a Friend",
-			description: "Privacy, Security, Change Number etc",
+			description: "Share Chatbox with your contacts",
 			svg: inviteFriends,
 		},
 	]);
@@ -73,10 +71,8 @@ const Settings = () => {
 								{user?.about}
 							</Text>
 						</View>
-						<BIcon
-							svg={qr}
-							onPress={() => logoutUser(dispatch)}
-						/>
+						{/* TODO: wire up to the QR sharing/scanner screen (tracked separately) */}
+						<BIcon svg={qr} />
 					</View>
 					<FlatList
 						style={{ marginTop: 20 }}

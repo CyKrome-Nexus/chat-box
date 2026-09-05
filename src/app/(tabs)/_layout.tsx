@@ -129,12 +129,7 @@ export default function TabLayout() {
 							<>
 								<TouchableOpacity
 									style={{ marginLeft: 30 }}
-									onPressIn={async () => {
-										function sleep(ms: number): Promise<void> {
-											return new Promise((resolve) => setTimeout(resolve, ms));
-										}
-
-										await sleep(200);
+									onPress={() => {
 										if (router.canGoBack()) {
 											router.back();
 										} else {
