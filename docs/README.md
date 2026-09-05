@@ -25,6 +25,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Realtime Messaging Infrastructure](./architecture/realtime-messaging.md) | Socket.IO client, event contract, connection status, offline outbox queue & flush-on-reconnect. |
 | [Media & File Attachments](./architecture/media-attachments.md) | Attachment sheet, camera/gallery/document/location pickers, media bubbles, fullscreen pinch-to-zoom viewer. |
 | [Voice & Audio Messaging](./architecture/voice-messages.md) | Recording (mic button, timer, slide-to-cancel), waveform bubbles, single-track playback. |
+| [Advanced Voice Note Studio](./architecture/voice-note-studio.md) | Swipe-up-to-lock, real live waveform capture, handsfree pause/preview/send, scrubbing, playback speed, continuous playback. |
 | [Emoji Picker](./architecture/emoji-picker.md) | Categorized emoji panel, search, recents, cursor-position insertion. |
 | [Social Authentication](./architecture/social-auth.md) | Google/Facebook/Apple OAuth wiring, per-button handlers, account creation & linking. |
 | [Device Contacts](./architecture/contacts.md) | expo-contacts sync, registered-status lookup, search, add-contact modal, start-chat flow. |
