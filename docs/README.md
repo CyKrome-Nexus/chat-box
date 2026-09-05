@@ -30,6 +30,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Device Contacts](./architecture/contacts.md) | expo-contacts sync, registered-status lookup, search, add-contact modal, start-chat flow. |
 | [Audio & Video Calling UI](./architecture/calling.md) | Call state machine, outgoing/incoming/active screens, call history logging. |
 | [Profile & QR Code](./architecture/profile-qr.md) | Profile view/edit, avatar cropping, QR code generation/sharing, QR scanner. |
+| [Fluid Micro-Animations & Gestures](./architecture/micro-animations.md) | Swipe-to-reply, keyboard-interactive input bar, morphing send/mic button, lightbox drag-to-dismiss, animated status ticks. |
 
 ---
 

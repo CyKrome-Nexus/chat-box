@@ -3,19 +3,18 @@ import {
 	View,
 	Text,
 	StyleSheet,
-	Platform,
 	FlatList,
 	TouchableOpacity,
 	TextInput,
 	TouchableWithoutFeedback,
 	Keyboard,
-	KeyboardEvent,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS } from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming, runOnJS } from "react-native-reanimated";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 
 import BIcon from "@/src/components/buttons/BIcon";
 import Colors from "@/src/constants/Colors";
@@ -26,7 +25,8 @@ import EmptyChatState from "@/src/components/messages/EmptyChatState";
 import AttachmentSheet, { TAttachmentOption } from "@/src/components/messages/AttachmentSheet";
 import MediaViewerModal from "@/src/components/messages/MediaViewerModal";
 import VoiceRecordingBar from "@/src/components/messages/VoiceRecordingBar";
-import EmojiPicker, { EMOJI_PICKER_HEIGHT } from "@/src/components/messages/EmojiPicker";
+import EmojiPicker from "@/src/components/messages/EmojiPicker";
+import ReplyPreviewBar from "@/src/components/messages/ReplyPreviewBar";
 import { composeMessage, seedConversation, updateAttachmentProgress } from "@/src/redux/features/messagesSlice";
 import { useChatRealtime } from "@/src/hooks/useChatRealtime";
 import { useAttachmentPicker } from "@/src/hooks/useAttachmentPicker";
@@ -85,17 +85,18 @@ const Chat = () => {
 		currentUserId
 	);
 
-	const [keyboardOffset, setKeyboardOffset] = useState(0);
 	const [text, setText] = useState("");
 	const [selection, setSelection] = useState({ start: 0, end: 0 });
 	const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
 	const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
 	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 	const [viewerUri, setViewerUri] = useState<string | undefined>();
+	const [replyTo, setReplyTo] = useState<IMessage | null>(null);
 	const flatListRef = useRef<FlatList>(null);
 	const { pickAttachment } = useAttachmentPicker();
 	const voiceRecorder = useVoiceRecorder();
 	const slideX = useSharedValue(0);
+	const sendMorph = useSharedValue(0);
 
 	// Seed a small, realistic backlog for existing conversations (identified by
 	// having a preview `lastMessage`) so the timeline/bubble UI has something to
@@ -134,31 +135,18 @@ const Chat = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [conversationId]);
 
-	useEffect(() => {
-		const showEvent =
-			Platform.OS === "android" ? "keyboardDidShow" : "keyboardWillShow";
-		const hideEvent =
-			Platform.OS === "android" ? "keyboardDidHide" : "keyboardWillHide";
-
-		const showSub = Keyboard.addListener(showEvent, (e: KeyboardEvent) => {
-			setKeyboardOffset(e.endCoordinates.height);
-		});
-		const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardOffset(0));
-
-		return () => {
-			showSub.remove();
-			hideSub.remove();
-		};
-	}, []);
-
 	const displayData = useMemo(() => buildDisplayData(messages), [messages]);
 
 	const handleSend = () => {
 		if (!text.trim()) return;
 
-		sendMessage(text);
+		sendMessage(
+			text,
+			replyTo ? { text: replyTo.text || "Attachment", isSender: replyTo.type === "sender" } : undefined
+		);
 		setText("");
 		setInputHeight(MIN_INPUT_HEIGHT);
+		setReplyTo(null);
 
 		requestAnimationFrame(() => {
 			flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -246,7 +234,22 @@ const Chat = () => {
 		transform: [{ translateX: slideX.value }, { scale: voiceRecorder.isRecording ? 1.15 : 1 }],
 	}));
 
+	// Morph target: 0 = mic fully visible, 1 = send fully visible.
+	useEffect(() => {
+		sendMorph.value = withTiming(text.trim() ? 1 : 0, { duration: 180 });
+	}, [text, sendMorph]);
+
+	const micMorphStyle = useAnimatedStyle(() => ({
+		opacity: 1 - sendMorph.value,
+		transform: [{ scale: 1 - sendMorph.value * 0.4 }],
+	}));
+	const sendMorphStyle = useAnimatedStyle(() => ({
+		opacity: sendMorph.value,
+		transform: [{ scale: 0.6 + sendMorph.value * 0.4 }],
+	}));
+
 	const isTyping = typingUsers.length > 0;
+	const hasText = !!text.trim();
 
 	const renderItem = ({ item }: { item: TDisplayItem }) => (
 		<View style={styles.invertedItem}>
@@ -257,6 +260,7 @@ const Chat = () => {
 					message={item.message}
 					avatar={user?.avatar}
 					onPressImage={setViewerUri}
+					onSwipeReply={setReplyTo}
 				/>
 			)}
 		</View>
@@ -277,120 +281,124 @@ const Chat = () => {
 						<Text style={styles.typingBannerText}>{user?.name || "Contact"} is typing…</Text>
 					</View>
 				)}
-				{displayData.length === 0 ? (
-					<EmptyChatState name={user?.name} />
-				) : (
-					<FlatList
-						ref={flatListRef}
-						data={displayData}
-						renderItem={renderItem}
-						keyExtractor={(item) => item.id}
-						contentContainerStyle={[
-							styles.messageList,
-							{ paddingBottom: 80 + (showEmojiPicker ? EMOJI_PICKER_HEIGHT : keyboardOffset) },
-						]}
-						showsVerticalScrollIndicator={false}
-						keyboardShouldPersistTaps="handled"
-						inverted
-					/>
-				)}
 
-				<View
-					style={[
-						styles.inputBar,
-						{
-							bottom: showEmojiPicker ? EMOJI_PICKER_HEIGHT : keyboardOffset,
-						},
-					]}
-				>
-					{voiceRecorder.isRecording ? (
-						<VoiceRecordingBar durationMillis={voiceRecorder.durationMillis} slideX={slideX} />
+				<View style={styles.messagesArea}>
+					{displayData.length === 0 ? (
+						<EmptyChatState name={user?.name} />
 					) : (
-						<>
-							<BIcon
-								style={{ marginHorizontal: 5 }}
-								svg={clip}
-								height={20}
-								width={20}
-								onPress={() => setShowAttachmentSheet(true)}
-							/>
-							<View style={styles.inputContainer}>
-								<TextInput
-									style={[styles.textInput, { height: inputHeight }]}
-									placeholder="Type your message"
-									placeholderTextColor="#797C7B"
-									returnKeyType="send"
-									blurOnSubmit={false}
-									value={text}
-									selection={selection}
-									onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
-									onChangeText={(value) => {
-										setText(value);
-										if (value.trim()) notifyTyping();
-									}}
-									multiline
-									onContentSizeChange={(e) => {
-										const nextHeight = Math.min(
-											MAX_INPUT_HEIGHT,
-											Math.max(MIN_INPUT_HEIGHT, e.nativeEvent.contentSize.height)
-										);
-										setInputHeight(nextHeight);
-									}}
-									onSubmitEditing={handleSend}
-									onFocus={() => {
-										setShowEmojiPicker(false);
-										requestAnimationFrame(() => {
-											flatListRef.current?.scrollToOffset({
-												offset: 0,
-												animated: true,
-											});
-										});
-									}}
-								/>
-							</View>
-							<TouchableOpacity
-								onPress={() => {
-									Keyboard.dismiss();
-									setShowEmojiPicker((prev) => !prev);
-								}}
-							>
-								<MaterialCommunityIcons
-									name="sticker-emoji"
-									size={22}
-									color={showEmojiPicker ? Colors.focused : "#818181"}
-								/>
-							</TouchableOpacity>
-						</>
-					)}
-
-					<GestureDetector gesture={micPanGesture}>
-						<Animated.View
-							style={[
-								styles.micButton,
-								voiceRecorder.isRecording && styles.micButtonActive,
-								micAnimatedStyle,
-							]}
-						>
-							<Ionicons name="mic" size={20} color={voiceRecorder.isRecording ? "#fff" : "#818181"} />
-						</Animated.View>
-					</GestureDetector>
-
-					{!voiceRecorder.isRecording && (
-						<TouchableOpacity
-							style={[styles.sendButton, !text.trim() && styles.sendButtonDisabled]}
-							onPress={handleSend}
-							disabled={!text.trim()}
-						>
-							<Ionicons name="send" size={22} color="#fff" />
-						</TouchableOpacity>
+						<FlatList
+							ref={flatListRef}
+							data={displayData}
+							renderItem={renderItem}
+							keyExtractor={(item) => item.id}
+							contentContainerStyle={styles.messageList}
+							showsVerticalScrollIndicator={false}
+							keyboardShouldPersistTaps="handled"
+							inverted
+						/>
 					)}
 				</View>
 
-				{showEmojiPicker && (
-					<View style={styles.emojiPickerContainer}>
-						<EmojiPicker onSelectEmoji={handleSelectEmoji} />
+				<KeyboardStickyView>
+					{replyTo && !voiceRecorder.isRecording && (
+						<ReplyPreviewBar
+							message={replyTo}
+							contactName={user?.name}
+							onDismiss={() => setReplyTo(null)}
+						/>
+					)}
+
+					<View style={styles.inputBar}>
+						{voiceRecorder.isRecording ? (
+							<VoiceRecordingBar durationMillis={voiceRecorder.durationMillis} slideX={slideX} />
+						) : (
+							<>
+								<BIcon
+									style={{ marginHorizontal: 5 }}
+									svg={clip}
+									height={20}
+									width={20}
+									onPress={() => setShowAttachmentSheet(true)}
+								/>
+								<View style={styles.inputContainer}>
+									<TextInput
+										style={[styles.textInput, { height: inputHeight }]}
+										placeholder="Type your message"
+										placeholderTextColor="#797C7B"
+										returnKeyType="send"
+										blurOnSubmit={false}
+										value={text}
+										selection={selection}
+										onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+										onChangeText={(value) => {
+											setText(value);
+											if (value.trim()) notifyTyping();
+										}}
+										multiline
+										onContentSizeChange={(e) => {
+											const nextHeight = Math.min(
+												MAX_INPUT_HEIGHT,
+												Math.max(MIN_INPUT_HEIGHT, e.nativeEvent.contentSize.height)
+											);
+											setInputHeight(nextHeight);
+										}}
+										onSubmitEditing={handleSend}
+										onFocus={() => {
+											setShowEmojiPicker(false);
+											requestAnimationFrame(() => {
+												flatListRef.current?.scrollToOffset({
+													offset: 0,
+													animated: true,
+												});
+											});
+										}}
+									/>
+								</View>
+								<TouchableOpacity
+									onPress={() => {
+										Keyboard.dismiss();
+										setShowEmojiPicker((prev) => !prev);
+									}}
+								>
+									<MaterialCommunityIcons
+										name="sticker-emoji"
+										size={22}
+										color={showEmojiPicker ? Colors.focused : "#818181"}
+									/>
+								</TouchableOpacity>
+							</>
+						)}
+
+						{/* Morphing mic <-> send: both share the same box and cross-fade/scale
+						    based on whether there's text, instead of two separately-shown buttons. */}
+						<View style={styles.actionButtonSlot}>
+							<GestureDetector gesture={micPanGesture}>
+								<Animated.View
+									style={[
+										styles.micButton,
+										voiceRecorder.isRecording && styles.micButtonActive,
+										micAnimatedStyle,
+										micMorphStyle,
+									]}
+									pointerEvents={hasText ? "none" : "auto"}
+								>
+									<Ionicons name="mic" size={20} color={voiceRecorder.isRecording ? "#fff" : "#818181"} />
+								</Animated.View>
+							</GestureDetector>
+
+							<Animated.View
+								style={[styles.sendButton, sendMorphStyle, StyleSheet.absoluteFill]}
+								pointerEvents={hasText ? "auto" : "none"}
+							>
+								<TouchableOpacity style={styles.sendButtonTouchable} onPress={handleSend}>
+									<Ionicons name="send" size={22} color="#fff" />
+								</TouchableOpacity>
+							</Animated.View>
+						</View>
 					</View>
-				)}
+
+					{showEmojiPicker && <EmojiPicker onSelectEmoji={handleSelectEmoji} />}
+				</KeyboardStickyView>
 
 				<AttachmentSheet
 					visible={showAttachmentSheet}
@@ -412,17 +420,18 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: "#fcfcfc",
 	},
+	messagesArea: {
+		flex: 1,
+	},
 	messageList: {
 		paddingHorizontal: 16,
 		paddingTop: 16,
+		paddingBottom: 16,
 	},
 	invertedItem: {
 		transform: [{ scaleY: -1 }],
 	},
 	inputBar: {
-		position: "absolute",
-		left: 0,
-		right: 0,
 		flexDirection: "row",
 		alignItems: "center",
 		paddingHorizontal: 10,
@@ -444,34 +453,34 @@ const styles = StyleSheet.create({
 		minHeight: 32,
 		color: "#222",
 	},
-	sendButton: {
-		marginLeft: 8,
-		backgroundColor: "#11BC6B",
-		borderRadius: 21,
+	actionButtonSlot: {
 		width: 38,
 		height: 38,
+		marginLeft: 4,
+	},
+	sendButton: {
+		borderRadius: 21,
 		justifyContent: "center",
 		alignItems: "center",
 	},
-	sendButtonDisabled: {
-		opacity: 0.5,
+	sendButtonTouchable: {
+		flex: 1,
+		width: "100%",
+		borderRadius: 21,
+		backgroundColor: "#11BC6B",
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	micButton: {
+		position: "absolute",
 		width: 38,
 		height: 38,
 		borderRadius: 19,
 		justifyContent: "center",
 		alignItems: "center",
-		marginHorizontal: 4,
 	},
 	micButtonActive: {
 		backgroundColor: "#F04A4C",
-	},
-	emojiPickerContainer: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		bottom: 0,
 	},
 	offlineBanner: {
 		backgroundColor: "#F04A4C",

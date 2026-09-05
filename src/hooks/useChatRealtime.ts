@@ -40,7 +40,7 @@ export const useChatRealtime = (conversationId: string, currentUserId: string) =
     }, [conversationId, currentUserId]);
 
     const sendMessage = useCallback(
-        (text: string) => {
+        (text: string, replyTo?: IMessage["replyTo"]) => {
             const trimmed = text.trim();
             if (!trimmed) return;
 
@@ -50,6 +50,7 @@ export const useChatRealtime = (conversationId: string, currentUserId: string) =
                 text: trimmed,
                 type: "sender",
                 timestamp: Date.now(),
+                replyTo,
             };
 
             const emitted = realtimeSocketClient.emit("message:send", {

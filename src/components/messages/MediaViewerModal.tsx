@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -5,7 +6,12 @@ import Animated, {
 	useAnimatedStyle,
 	useSharedValue,
 	withSpring,
+	withTiming,
+	runOnJS,
 } from "react-native-reanimated";
+
+const DISMISS_DISTANCE_THRESHOLD = 120;
+const DISMISS_VELOCITY_THRESHOLD = 800;
 
 const MediaViewerModal = ({
 	uri,
@@ -22,6 +28,28 @@ const MediaViewerModal = ({
 	const translateY = useSharedValue(0);
 	const savedTranslateX = useSharedValue(0);
 	const savedTranslateY = useSharedValue(0);
+	const dismissY = useSharedValue(0);
+	const backdropOpacity = useSharedValue(1);
+	const entrance = useSharedValue(0);
+
+	// Every fresh open should start from a clean slate — these shared values
+	// otherwise persist across opens since this component stays mounted
+	// (visible just toggles) rather than remounting per image.
+	useEffect(() => {
+		if (uri) {
+			scale.value = 1;
+			savedScale.value = 1;
+			translateX.value = 0;
+			translateY.value = 0;
+			savedTranslateX.value = 0;
+			savedTranslateY.value = 0;
+			dismissY.value = 0;
+			backdropOpacity.value = 1;
+			entrance.value = 0;
+			entrance.value = withTiming(1, { duration: 220 });
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [uri]);
 
 	const reset = () => {
 		scale.value = withSpring(1);
@@ -43,29 +71,51 @@ const MediaViewerModal = ({
 
 	const panGesture = Gesture.Pan()
 		.onUpdate((e) => {
-			translateX.value = savedTranslateX.value + e.translationX;
-			translateY.value = savedTranslateY.value + e.translationY;
+			if (scale.value > 1.05) {
+				// Panning around a zoomed-in image.
+				translateX.value = savedTranslateX.value + e.translationX;
+				translateY.value = savedTranslateY.value + e.translationY;
+			} else {
+				// Not zoomed — a vertical drag dismisses instead.
+				dismissY.value = Math.max(0, e.translationY);
+				backdropOpacity.value = Math.max(0.3, 1 - dismissY.value / 300);
+			}
 		})
-		.onEnd(() => {
-			savedTranslateX.value = translateX.value;
-			savedTranslateY.value = translateY.value;
+		.onEnd((e) => {
+			if (scale.value > 1.05) {
+				savedTranslateX.value = translateX.value;
+				savedTranslateY.value = translateY.value;
+				return;
+			}
+
+			if (dismissY.value > DISMISS_DISTANCE_THRESHOLD || e.velocityY > DISMISS_VELOCITY_THRESHOLD) {
+				runOnJS(onClose)();
+			} else {
+				dismissY.value = withSpring(0);
+				backdropOpacity.value = withSpring(1);
+			}
 		});
 
 	const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
 	const animatedStyle = useAnimatedStyle(() => ({
+		opacity: entrance.value,
 		transform: [
 			{ translateX: translateX.value },
-			{ translateY: translateY.value },
-			{ scale: scale.value },
+			{ translateY: translateY.value + dismissY.value },
+			{ scale: scale.value * (0.85 + entrance.value * 0.15) },
 		],
+	}));
+
+	const backdropStyle = useAnimatedStyle(() => ({
+		opacity: backdropOpacity.value * entrance.value,
 	}));
 
 	if (!uri) return null;
 
 	return (
 		<Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-			<View style={styles.container}>
+			<Animated.View style={[styles.container, backdropStyle]}>
 				<TouchableOpacity style={styles.closeButton} onPress={onClose}>
 					<Ionicons name="close" size={28} color="#fff" />
 				</TouchableOpacity>
@@ -76,7 +126,7 @@ const MediaViewerModal = ({
 						resizeMode="contain"
 					/>
 				</GestureDetector>
-			</View>
+			</Animated.View>
 		</Modal>
 	);
 };

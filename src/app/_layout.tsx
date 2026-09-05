@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { Provider, useSelector } from "react-redux";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 
@@ -43,6 +44,7 @@ const AppGate = () => {
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
+			<KeyboardProvider>
 			<Stack screenOptions={{ headerShown: false }}>
 				<Stack.Screen name="(root)" />
 				<Stack.Screen name="(tabs)" />
@@ -56,6 +58,7 @@ const AppGate = () => {
 				<Stack.Screen name="settings-help" />
 				<Stack.Screen name="settings-storage" />
 			</Stack>
+			</KeyboardProvider>
 		</GestureHandlerRootView>
 	);
 };
