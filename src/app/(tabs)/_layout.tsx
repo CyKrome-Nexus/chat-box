@@ -1,5 +1,6 @@
 import { router, Tabs } from "expo-router";
 import { TouchableOpacity, View } from "react-native";
+import { useEffect } from "react";
 
 import IconSVG from "@/src/components/images/IconSVG";
 import Colors from "@/src/constants/Colors";
@@ -19,6 +20,20 @@ import { useSelector } from "react-redux";
 import { IUser } from "@/src/interfaces/user-interface";
 
 export default function TabLayout() {
+	const user = useSelector((state: { user: IUser | null }) => state.user);
+
+	// Guards this whole group against unauthenticated access — e.g. a deep
+	// link straight into "(tabs)/messages" with no session.
+	useEffect(() => {
+		if (!user?.name && !user?.username) {
+			router.replace("/");
+		}
+	}, [user]);
+
+	if (!user?.name && !user?.username) {
+		return null;
+	}
+
 	return (
 		<Tabs
 			screenOptions={{

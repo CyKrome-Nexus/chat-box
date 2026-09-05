@@ -5,25 +5,22 @@ import { useSelector } from "react-redux";
 import { backArrow } from "@/src/constants/svgs/icons";
 import IconSVG from "@/src/components/images/IconSVG";
 import { IUser } from "@/src/interfaces/user-interface";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 const RootLayout = () => {
-	const [mounted, setMounted] = useState(false);
 	const user = useSelector((state: { user: IUser | null }) => state.user);
 
+	// The root Stack (src/app/_layout.tsx) only renders this group once
+	// session hydration has finished, so `user` here is always the final
+	// hydrated value — no separate "mounted"/loading guard is needed to
+	// avoid an aggressive redirect firing on stale/uninitialized state.
 	useEffect(() => {
-		setMounted(true);
-	}, []);
-
-	useEffect(() => {
-		if (!mounted) return; // Only navigate after mounting
-
 		if (user?.name || user?.username) {
 			router.replace("(tabs)/messages");
 		} else {
 			router.replace("/");
 		}
-	}, [user, mounted]);
+	}, [user]);
 
 	return (
 		<Stack>
