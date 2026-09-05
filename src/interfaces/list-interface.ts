@@ -18,6 +18,16 @@ export interface IChatRibbon extends IRibbonParent {
     notificationCount?: number
     status?: "ONLINE"
     muted?: boolean
+    /** Up to 5 chats — see chat-organization.md. */
+    pinned?: boolean
+    archived?: boolean
+    /** Unsent input-bar text, auto-saved when the user leaves the chat screen. */
+    draft?: string
+    /**
+     * Reserved for the "Groups" filter pill — always false until groups
+     * (#33) exist. See docs/architecture/chat-organization.md.
+     */
+    isGroup?: boolean
 }
 
 export interface IChatList {

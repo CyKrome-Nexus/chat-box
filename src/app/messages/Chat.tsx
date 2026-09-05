@@ -45,6 +45,7 @@ import {
 	updateAttachmentProgress,
 	updateMessageStatus,
 } from "@/src/redux/features/messagesSlice";
+import { markChatRead, setChatDraft } from "@/src/redux/features/chatsSlice";
 import { useChatRealtime } from "@/src/hooks/useChatRealtime";
 import { useAttachmentPicker } from "@/src/hooks/useAttachmentPicker";
 import { useVoiceRecorder } from "@/src/hooks/useVoiceRecorder";
@@ -107,7 +108,14 @@ const Chat = () => {
 		currentUserId
 	);
 
-	const [text, setText] = useState("");
+	const chatDraft = useSelector(
+		(state: any) => (state.chats.chats as IChatRibbon[]).find((c) => c.id === conversationId)?.draft
+	);
+	// Lazy initializer: only reads the persisted draft once, on mount — later
+	// re-renders (e.g. from other chatsSlice updates) shouldn't stomp on
+	// whatever the user is actively typing.
+	const [text, setText] = useState(() => chatDraft || "");
+	const textRef = useRef(text);
 	const [selection, setSelection] = useState({ start: 0, end: 0 });
 	const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
 	const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
@@ -201,6 +209,26 @@ const Chat = () => {
 			.map((m) => m.id);
 		audioPlaybackManager.registerSequence(conversationId, audioMessageIds);
 	}, [messages, conversationId]);
+
+	useEffect(() => {
+		textRef.current = text;
+	}, [text]);
+
+	// Opening a chat is the natural "I've seen this" signal for the unread
+	// badge/filter (see chat-organization.md).
+	useEffect(() => {
+		dispatch(markChatRead(conversationId));
+	}, [conversationId, dispatch]);
+
+	// Auto-saves an in-progress, unsent draft to the chat record on the way
+	// out, so it survives navigating away and shows as "Draft: ..." in the
+	// inbox (see docs/architecture/chat-organization.md).
+	useEffect(() => {
+		return () => {
+			dispatch(setChatDraft({ chatId: conversationId, draft: textRef.current }));
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [conversationId, dispatch]);
 
 	// No real backend exists to actually deliver/read a message — this just
 	// simulates the tick progression locally so Info has something real to

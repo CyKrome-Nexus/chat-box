@@ -4,8 +4,9 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import SettingsScreenHeader from "@/src/components/settings/SettingsScreenHeader";
+import SettingToggleRow from "@/src/components/settings/SettingToggleRow";
 import Colors from "@/src/constants/Colors";
-import { setLastBackupAt, setTheme, TTheme } from "@/src/redux/features/settingsSlice";
+import { setLastBackupAt, setTheme, setUnarchiveOnNewMessage, TTheme } from "@/src/redux/features/settingsSlice";
 import { clearAllMessages } from "@/src/redux/features/messagesSlice";
 
 const THEME_OPTIONS: { key: TTheme; label: string }[] = [
@@ -18,6 +19,7 @@ const SettingsChat = () => {
 	const dispatch = useDispatch();
 	const theme = useSelector((state: any) => state.settings.theme as TTheme);
 	const lastBackupAt = useSelector((state: any) => state.settings.lastBackupAt as number | null);
+	const unarchiveOnNewMessage = useSelector((state: any) => state.settings.chat.unarchiveOnNewMessage as boolean);
 
 	const handleClearAllChats = () => {
 		Alert.alert("Clear all chats", "This deletes every message in every conversation. This can't be undone.", [
@@ -50,6 +52,14 @@ const SettingsChat = () => {
 					</TouchableOpacity>
 				))}
 			</View>
+
+			<Text style={styles.sectionTitle}>Archiving</Text>
+			<SettingToggleRow
+				label="Unarchive on New Message"
+				description="Move an archived chat back to your inbox when it gets a new message"
+				value={unarchiveOnNewMessage}
+				onValueChange={(value) => dispatch(setUnarchiveOnNewMessage(value))}
+			/>
 
 			<Text style={styles.sectionTitle}>Wallpaper</Text>
 			<Text style={styles.note}>

@@ -15,19 +15,31 @@ import Animated, {
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
 
 import BIcon from "../buttons/BIcon";
 import { bin, notificationBell } from "@/src/constants/svgs/icons";
 import Avatar from "../images/Avatar";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
-import { deleteChat, toggleMuteChat } from "@/src/redux/features/chatsSlice";
+import {
+	deleteChat,
+	MAX_PINNED_CHATS,
+	markChatRead,
+	markChatUnread,
+	toggleArchiveChat,
+	toggleMuteChat,
+	togglePinChat,
+} from "@/src/redux/features/chatsSlice";
+import Colors from "@/src/constants/Colors";
 
-const BUTTON_WIDTH = Dimensions.get("window").width * 0.3;
+const BUTTON_WIDTH = Dimensions.get("window").width * 0.45;
 
 const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
 	const dispatch = useDispatch();
+	const pinnedCount = useSelector(
+		(state: any) => state.chats.chats.filter((c: IChatRibbon) => c.pinned).length
+	);
 	const translateX = useSharedValue(0);
 	const offsetX = useSharedValue(0);
 
@@ -65,6 +77,34 @@ const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
 	const handleToggleMute = () => {
 		dispatch(toggleMuteChat(content.id));
 		closeSwipe();
+	};
+
+	const handleToggleArchive = () => {
+		dispatch(toggleArchiveChat(content.id));
+		closeSwipe();
+	};
+
+	const handleTogglePin = () => {
+		if (!content.pinned && pinnedCount >= MAX_PINNED_CHATS) {
+			Alert.alert("Pin limit reached", `You can only pin up to ${MAX_PINNED_CHATS} chats.`);
+			return;
+		}
+		dispatch(togglePinChat(content.id));
+	};
+
+	const handleLongPress = () => {
+		const isUnread = (content.notificationCount || 0) > 0;
+		Alert.alert(content.name, undefined, [
+			{ text: "Cancel", style: "cancel" },
+			{
+				text: content.pinned ? "Unpin" : "Pin",
+				onPress: handleTogglePin,
+			},
+			{
+				text: isUnread ? "Mark as Read" : "Mark as Unread",
+				onPress: () => dispatch(isUnread ? markChatRead(content.id) : markChatUnread(content.id)),
+			},
+		]);
 	};
 
 	const handleDelete = () => {
@@ -112,6 +152,9 @@ const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
 					iconWidth={45}
 					onPress={handleToggleMute}
 				/>
+				<TouchableOpacity style={styles.archiveButton} onPress={handleToggleArchive}>
+					<Ionicons name={content.archived ? "arrow-undo" : "archive"} size={22} color="#fff" />
+				</TouchableOpacity>
 				<BIcon
 					svg={bin}
 					width={45}
@@ -125,7 +168,11 @@ const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
 			{/* Swipeable ribbon content */}
 			<GestureDetector gesture={gesture}>
 				<Animated.View style={[styles.ribbon, ribbonAnimated]}>
-					<TouchableOpacity style={styles.container} onPress={handlePressRibbon}>
+					<TouchableOpacity
+						style={styles.container}
+						onPress={handlePressRibbon}
+						onLongPress={handleLongPress}
+					>
 						<View style={styles.content}>
 							<Avatar
 								data={content?.avatar}
@@ -134,6 +181,7 @@ const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
 							/>
 							<View style={styles.mainContent}>
 								<View style={styles.nameRow}>
+									{content.pinned && <Ionicons name="pin" size={13} color={Colors.focused} />}
 									<Text style={{ fontSize: 22, fontWeight: "bold" }}>
 										{content?.name}
 									</Text>
@@ -141,9 +189,15 @@ const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
 										<Ionicons name="notifications-off-outline" size={14} color="#797C7B" />
 									)}
 								</View>
-								<Text style={{ fontSize: 12, color: "#797C7B" }}>
-									{content?.lastMessage}
-								</Text>
+								{content.draft ? (
+									<Text style={styles.draftText} numberOfLines={1}>
+										Draft: {content.draft}
+									</Text>
+								) : (
+									<Text style={{ fontSize: 12, color: "#797C7B" }} numberOfLines={1}>
+										{content?.lastMessage}
+									</Text>
+								)}
 							</View>
 						</View>
 						<View style={styles.statusContent}>
@@ -172,6 +226,19 @@ const styles = StyleSheet.create({
 		height: 80,
 		marginBottom: 4,
 		overflow: "hidden",
+	},
+	archiveButton: {
+		width: 45,
+		height: 45,
+		borderRadius: 22,
+		backgroundColor: "#F5A623",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	draftText: {
+		fontSize: 12,
+		color: "#11BC6B",
+		fontWeight: "600",
 	},
 	hiddenButtons: {
 		position: "absolute",

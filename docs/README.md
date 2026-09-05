@@ -38,6 +38,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [In-App Camera, Media Compressor & Editor](./architecture/media-editor.md) | In-app camera (tap/hold, flash, zoom, flip), crop/rotate/doodle/text/sticker editor with view-shot baking, caption + view-once, WEBP compression. |
 | [Media Lightbox, Document Viewer & Shared Gallery](./architecture/media-gallery.md) | Swipeable pinch-zoom lightbox with share/save/forward/delete, in-app PDF preview, Contact Info entry point, tabbed shared-media gallery with OG link previews. |
 | [Message Actions Menu](./architecture/message-actions.md) | Long-press reaction pill + action menu (reply/copy/forward/edit/star/delete/info), jump-to-original quoted replies, edit window, delete-for-everyone tombstones, starred messages. |
+| [Chat Organization & Management](./architecture/chat-organization.md) | Pinning (max 5), swipe-to-archive with a collapsible archived section, unread filter pills + tab badge, mark as read/unread, and local draft auto-save. |
 
 ---
 

@@ -20,6 +20,10 @@ interface SettingsState {
         videos: boolean;
         documents: boolean;
     };
+    chat: {
+        /** Off = an incoming message for an archived chat stays archived. See chat-organization.md. */
+        unarchiveOnNewMessage: boolean;
+    };
     lastBackupAt: number | null;
 }
 
@@ -41,6 +45,9 @@ const initialState: SettingsState = {
         videos: false,
         documents: false,
     },
+    chat: {
+        unarchiveOnNewMessage: true,
+    },
     lastBackupAt: null,
 };
 
@@ -48,7 +55,13 @@ export const settingsSlice = createSlice({
     name: "settings",
     initialState,
     reducers: {
-        hydrateSettings: (_state, action: PayloadAction<SettingsState>) => action.payload,
+        // Merges rather than replaces so a persisted blob saved before a
+        // newly-added settings key (e.g. `chat`) still gets that key's default.
+        hydrateSettings: (state, action: PayloadAction<Partial<SettingsState>>) => ({
+            ...state,
+            ...action.payload,
+            chat: { ...state.chat, ...action.payload.chat },
+        }),
         setPrivacyPref: (
             state,
             action: PayloadAction<{ key: keyof SettingsState["privacy"]; value: boolean }>
@@ -73,6 +86,9 @@ export const settingsSlice = createSlice({
         setLastBackupAt: (state, action: PayloadAction<number>) => {
             state.lastBackupAt = action.payload;
         },
+        setUnarchiveOnNewMessage: (state, action: PayloadAction<boolean>) => {
+            state.chat.unarchiveOnNewMessage = action.payload;
+        },
     },
 });
 
@@ -83,5 +99,6 @@ export const {
     setTheme,
     setAutoDownloadPref,
     setLastBackupAt,
+    setUnarchiveOnNewMessage,
 } = settingsSlice.actions;
 export default settingsSlice.reducer;
