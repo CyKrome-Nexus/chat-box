@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+	Alert,
 	View,
 	Text,
 	StyleSheet,
@@ -15,6 +16,7 @@ import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming, runOnJS } from "react-native-reanimated";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
+import * as Clipboard from "expo-clipboard";
 
 import BIcon from "@/src/components/buttons/BIcon";
 import Colors from "@/src/constants/Colors";
@@ -30,7 +32,19 @@ import EmojiPicker from "@/src/components/messages/EmojiPicker";
 import ReplyPreviewBar from "@/src/components/messages/ReplyPreviewBar";
 import VideoNoteRecordingOverlay from "@/src/components/messages/VideoNoteRecordingOverlay";
 import FullscreenVideoModal from "@/src/components/messages/FullscreenVideoModal";
-import { composeMessage, seedConversation, updateAttachmentProgress } from "@/src/redux/features/messagesSlice";
+import MessageActionsOverlay, { EDIT_WINDOW_MS, IBubbleAnchor } from "@/src/components/messages/MessageActionsOverlay";
+import MessageInfoModal from "@/src/components/messages/MessageInfoModal";
+import ForwardSheet from "@/src/components/messages/ForwardSheet";
+import {
+	composeMessage,
+	deleteForEveryone,
+	deleteMessage,
+	seedConversation,
+	setMessageReaction,
+	toggleStarMessage,
+	updateAttachmentProgress,
+	updateMessageStatus,
+} from "@/src/redux/features/messagesSlice";
 import { useChatRealtime } from "@/src/hooks/useChatRealtime";
 import { useAttachmentPicker } from "@/src/hooks/useAttachmentPicker";
 import { useVoiceRecorder } from "@/src/hooks/useVoiceRecorder";
@@ -88,7 +102,7 @@ const Chat = () => {
 	const messages = useSelector(
 		(state: any) => state.messages.byConversation[conversationId] as IMessage[] | undefined
 	) || [];
-	const { connectionStatus, typingUsers, sendMessage, notifyTyping } = useChatRealtime(
+	const { connectionStatus, typingUsers, sendMessage, notifyTyping, editMessage: editMessageRealtime } = useChatRealtime(
 		conversationId,
 		currentUserId
 	);
@@ -101,6 +115,13 @@ const Chat = () => {
 	const [viewerMessageId, setViewerMessageId] = useState<string | undefined>();
 	const [fullscreenVideoUri, setFullscreenVideoUri] = useState<string | undefined>();
 	const [replyTo, setReplyTo] = useState<IMessage | null>(null);
+	const [editingMessage, setEditingMessage] = useState<IMessage | null>(null);
+	const [selectedMessage, setSelectedMessage] = useState<IMessage | null>(null);
+	const [selectedAnchor, setSelectedAnchor] = useState<IBubbleAnchor | null>(null);
+	const [reactionEmojiPickerFor, setReactionEmojiPickerFor] = useState<IMessage | null>(null);
+	const [infoMessage, setInfoMessage] = useState<IMessage | null>(null);
+	const [forwardTarget, setForwardTarget] = useState<IMessage | null>(null);
+	const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>();
 	const flatListRef = useRef<FlatList>(null);
 	const { pickAttachment } = useAttachmentPicker();
 	const voiceRecorder = useVoiceRecorder();
@@ -181,13 +202,34 @@ const Chat = () => {
 		audioPlaybackManager.registerSequence(conversationId, audioMessageIds);
 	}, [messages, conversationId]);
 
+	// No real backend exists to actually deliver/read a message — this just
+	// simulates the tick progression locally so Info has something real to
+	// show (see docs/architecture/message-actions.md).
+	const simulateDeliveryReceipt = (messageId: string) => {
+		setTimeout(() => {
+			dispatch(updateMessageStatus({ conversationId, messageId, status: "delivered" }));
+		}, 800);
+		setTimeout(() => {
+			dispatch(updateMessageStatus({ conversationId, messageId, status: "read" }));
+		}, 2500);
+	};
+
 	const handleSend = () => {
 		if (!text.trim()) return;
 
-		sendMessage(
+		if (editingMessage) {
+			editMessageRealtime(editingMessage.id, text);
+			setEditingMessage(null);
+			setText("");
+			setInputHeight(MIN_INPUT_HEIGHT);
+			return;
+		}
+
+		const messageId = sendMessage(
 			text,
-			replyTo ? { text: replyTo.text || "Attachment", isSender: replyTo.type === "sender" } : undefined
+			replyTo ? { messageId: replyTo.id, text: replyTo.text || "Attachment", isSender: replyTo.type === "sender" } : undefined
 		);
+		if (messageId) simulateDeliveryReceipt(messageId);
 		setText("");
 		setInputHeight(MIN_INPUT_HEIGHT);
 		setReplyTo(null);
@@ -217,6 +259,7 @@ const Chat = () => {
 		};
 
 		dispatch(composeMessage({ conversationId, message: { ...message, attachment }, queued: false }));
+		simulateDeliveryReceipt(message.id);
 
 		requestAnimationFrame(() => {
 			flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -407,6 +450,117 @@ const Chat = () => {
 	const isTyping = typingUsers.length > 0;
 	const hasText = !!text.trim();
 
+	const closeActionsOverlay = () => {
+		setSelectedMessage(null);
+		setSelectedAnchor(null);
+	};
+
+	const handleLongPressMessage = (message: IMessage, anchor: IBubbleAnchor) => {
+		setSelectedMessage(message);
+		setSelectedAnchor(anchor);
+	};
+
+	const handleReact = (emoji: string) => {
+		if (selectedMessage) dispatch(setMessageReaction({ conversationId, messageId: selectedMessage.id, emoji }));
+		closeActionsOverlay();
+	};
+
+	const handleOpenReactionEmojiPicker = () => {
+		setReactionEmojiPickerFor(selectedMessage);
+		closeActionsOverlay();
+	};
+
+	const handleReply = () => {
+		if (selectedMessage) setReplyTo(selectedMessage);
+		closeActionsOverlay();
+	};
+
+	const handleCopy = async () => {
+		if (selectedMessage?.text) await Clipboard.setStringAsync(selectedMessage.text);
+		closeActionsOverlay();
+	};
+
+	const handleForward = () => {
+		setForwardTarget(selectedMessage);
+		closeActionsOverlay();
+	};
+
+	const handleEdit = () => {
+		if (selectedMessage) {
+			setEditingMessage(selectedMessage);
+			setReplyTo(null);
+			setText(selectedMessage.text);
+		}
+		closeActionsOverlay();
+	};
+
+	const handleStar = () => {
+		if (selectedMessage) dispatch(toggleStarMessage({ conversationId, messageId: selectedMessage.id }));
+		closeActionsOverlay();
+	};
+
+	const handleDelete = () => {
+		const message = selectedMessage;
+		closeActionsOverlay();
+		if (!message) return;
+
+		const canDeleteForEveryone =
+			message.type === "sender" && Date.now() - message.timestamp < EDIT_WINDOW_MS;
+
+		Alert.alert("Delete message?", undefined, [
+			{ text: "Cancel", style: "cancel" },
+			...(canDeleteForEveryone
+				? [
+						{
+							text: "Delete for Everyone",
+							style: "destructive" as const,
+							onPress: () => dispatch(deleteForEveryone({ conversationId, messageId: message.id })),
+						},
+				  ]
+				: []),
+			{
+				text: "Delete for Me",
+				style: "destructive",
+				onPress: () => dispatch(deleteMessage({ conversationId, messageId: message.id })),
+			},
+		]);
+	};
+
+	const handleInfo = () => {
+		setInfoMessage(selectedMessage);
+		closeActionsOverlay();
+	};
+
+	const handleForwardSelect = (target: IChatRibbon) => {
+		if (!forwardTarget) return;
+		dispatch(
+			composeMessage({
+				conversationId: target.id,
+				message: {
+					id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+					conversationId: target.id,
+					text: forwardTarget.text,
+					type: "sender",
+					timestamp: Date.now(),
+					attachment: forwardTarget.attachment,
+				},
+				queued: false,
+			})
+		);
+		Alert.alert("Forwarded", `Sent to ${target.name}.`);
+	};
+
+	const handlePressReplyQuote = (messageId: string) => {
+		const index = displayData.findIndex((item) => item.kind === "message" && item.message.id === messageId);
+		if (index === -1) {
+			Alert.alert("Message not found", "The original message is no longer available.");
+			return;
+		}
+		flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+		setHighlightedMessageId(messageId);
+		setTimeout(() => setHighlightedMessageId(undefined), 1200);
+	};
+
 	const renderItem = ({ item }: { item: TDisplayItem }) => (
 		<View style={styles.invertedItem}>
 			{item.kind === "separator" ? (
@@ -418,6 +572,9 @@ const Chat = () => {
 					onPressMedia={setViewerMessageId}
 					onPressVideoNote={setFullscreenVideoUri}
 					onSwipeReply={setReplyTo}
+					onPressReplyQuote={handlePressReplyQuote}
+					onLongPressMessage={handleLongPressMessage}
+					highlighted={highlightedMessageId === item.message.id}
 				/>
 			)}
 		</View>
@@ -451,13 +608,32 @@ const Chat = () => {
 							contentContainerStyle={styles.messageList}
 							showsVerticalScrollIndicator={false}
 							keyboardShouldPersistTaps="handled"
+							onScrollToIndexFailed={(info) => {
+								setTimeout(() => {
+									flatListRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.5 });
+								}, 100);
+							}}
 							inverted
 						/>
 					)}
 				</View>
 
 				<KeyboardStickyView>
-					{replyTo && recordingMode === "idle" && (
+					{editingMessage && recordingMode === "idle" && (
+						<View style={styles.editingBanner}>
+							<Ionicons name="create-outline" size={16} color={Colors.focused} />
+							<Text style={styles.editingBannerText}>Editing message</Text>
+							<TouchableOpacity
+								onPress={() => {
+									setEditingMessage(null);
+									setText("");
+								}}
+							>
+								<Ionicons name="close" size={18} color="#797C7B" />
+							</TouchableOpacity>
+						</View>
+					)}
+					{replyTo && recordingMode === "idle" && !editingMessage && (
 						<ReplyPreviewBar
 							message={replyTo}
 							contactName={user?.name}
@@ -641,6 +817,40 @@ const Chat = () => {
 					visible={!!fullscreenVideoUri}
 					onClose={() => setFullscreenVideoUri(undefined)}
 				/>
+
+				<MessageActionsOverlay
+					message={selectedMessage}
+					anchor={selectedAnchor}
+					isSender={selectedMessage?.type === "sender"}
+					visible={!!selectedMessage}
+					onClose={closeActionsOverlay}
+					onReact={handleReact}
+					onOpenEmojiPicker={handleOpenReactionEmojiPicker}
+					onReply={handleReply}
+					onCopy={handleCopy}
+					onForward={handleForward}
+					onEdit={handleEdit}
+					onStar={handleStar}
+					onDelete={handleDelete}
+					onInfo={handleInfo}
+				/>
+				<MessageInfoModal message={infoMessage} visible={!!infoMessage} onClose={() => setInfoMessage(null)} />
+				<ForwardSheet
+					visible={!!forwardTarget}
+					onClose={() => setForwardTarget(null)}
+					onSelect={handleForwardSelect}
+				/>
+				{reactionEmojiPickerFor && (
+					<View style={styles.reactionEmojiPickerOverlay}>
+						<TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setReactionEmojiPickerFor(null)} />
+						<EmojiPicker
+							onSelectEmoji={(emoji) => {
+								dispatch(setMessageReaction({ conversationId, messageId: reactionEmojiPickerFor.id, emoji }));
+								setReactionEmojiPickerFor(null);
+							}}
+						/>
+					</View>
+				)}
 			</View>
 		</TouchableWithoutFeedback>
 	);
@@ -764,6 +974,31 @@ const styles = StyleSheet.create({
 		color: "#797C7B",
 		fontSize: 12,
 		fontStyle: "italic",
+	},
+	editingBanner: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		paddingHorizontal: 16,
+		paddingVertical: 8,
+		backgroundColor: "#F2F8F7",
+		borderTopWidth: 1,
+		borderTopColor: "#eee",
+	},
+	editingBannerText: {
+		flex: 1,
+		color: Colors.focused,
+		fontSize: 13,
+		fontWeight: "600",
+	},
+	reactionEmojiPickerOverlay: {
+		position: "absolute",
+		left: 0,
+		right: 0,
+		bottom: 0,
+		top: 0,
+		backgroundColor: "rgba(0,0,0,0.3)",
+		justifyContent: "flex-end",
 	},
 });
 

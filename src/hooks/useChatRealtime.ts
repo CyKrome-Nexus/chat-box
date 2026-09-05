@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 import { realtimeSocketClient } from "@/src/lib/realtime/socketClient";
 import { TConnectionStatus } from "@/src/lib/realtime/types";
-import { composeMessage } from "@/src/redux/features/messagesSlice";
+import { composeMessage, editMessage as editMessageAction } from "@/src/redux/features/messagesSlice";
 import { IMessage } from "@/src/interfaces/message-interface";
 
 const TYPING_TIMEOUT_MS = 3000;
@@ -40,9 +40,9 @@ export const useChatRealtime = (conversationId: string, currentUserId: string) =
     }, [conversationId, currentUserId]);
 
     const sendMessage = useCallback(
-        (text: string, replyTo?: IMessage["replyTo"]) => {
+        (text: string, replyTo?: IMessage["replyTo"]): string | undefined => {
             const trimmed = text.trim();
-            if (!trimmed) return;
+            if (!trimmed) return undefined;
 
             const message: IMessage = {
                 id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -70,6 +70,7 @@ export const useChatRealtime = (conversationId: string, currentUserId: string) =
             );
 
             stopTyping();
+            return message.id;
         },
         [conversationId, currentUserId, stopTyping]
     );
@@ -88,6 +89,18 @@ export const useChatRealtime = (conversationId: string, currentUserId: string) =
         typingTimeoutRef.current = setTimeout(stopTyping, TYPING_TIMEOUT_MS);
     }, [conversationId, currentUserId, stopTyping]);
 
+    /** Long-press "Edit" — optimistic local edit + best-effort broadcast (see message-actions.md). */
+    const editMessage = useCallback(
+        (messageId: string, text: string) => {
+            const trimmed = text.trim();
+            if (!trimmed) return;
+
+            dispatch(editMessageAction({ conversationId, messageId, text: trimmed }));
+            realtimeSocketClient.emit("message:edit", { conversationId, messageId, text: trimmed });
+        },
+        [conversationId, dispatch]
+    );
+
     const markRead = useCallback(
         (messageId: string) => {
             realtimeSocketClient.emit("receipt:read", {
@@ -99,5 +112,5 @@ export const useChatRealtime = (conversationId: string, currentUserId: string) =
         [conversationId, currentUserId]
     );
 
-    return { connectionStatus, typingUsers, sendMessage, notifyTyping, markRead };
+    return { connectionStatus, typingUsers, sendMessage, notifyTyping, markRead, editMessage };
 };

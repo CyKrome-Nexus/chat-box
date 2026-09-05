@@ -3,6 +3,7 @@ import { useDispatch, useStore } from "react-redux";
 
 import { realtimeSocketClient } from "@/src/lib/realtime/socketClient";
 import {
+    IMessageEditEvent,
     IMessageReceiveEvent,
     IPresenceEvent,
     IReadReceiptEvent,
@@ -10,6 +11,7 @@ import {
 } from "@/src/lib/realtime/types";
 import { setConnectionStatus, setPresence, setTyping } from "@/src/redux/features/connectionSlice";
 import {
+    editMessage,
     markMessageFlushed,
     receiveMessage,
     updateMessageStatus,
@@ -112,8 +114,13 @@ export const useRealtimeConnection = (currentUserId?: string) => {
             dispatch(setPresence(payload));
         };
 
+        const onMessageEdit = (payload: IMessageEditEvent) => {
+            dispatch(editMessage(payload));
+        };
+
         realtimeSocketClient.connect(REALTIME_URL, currentUserId ? { userId: currentUserId } : undefined);
         realtimeSocketClient.on("message:receive", onMessageReceive);
+        realtimeSocketClient.on("message:edit", onMessageEdit);
         realtimeSocketClient.on("typing:update", onTypingUpdate);
         realtimeSocketClient.on("receipt:read", onReadReceipt);
         realtimeSocketClient.on("presence:update", onPresenceUpdate);
@@ -121,6 +128,7 @@ export const useRealtimeConnection = (currentUserId?: string) => {
         return () => {
             unsubscribeStatus();
             realtimeSocketClient.off("message:receive", onMessageReceive);
+            realtimeSocketClient.off("message:edit", onMessageEdit);
             realtimeSocketClient.off("typing:update", onTypingUpdate);
             realtimeSocketClient.off("receipt:read", onReadReceipt);
             realtimeSocketClient.off("presence:update", onPresenceUpdate);

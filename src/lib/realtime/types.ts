@@ -28,6 +28,13 @@ export interface IReadReceiptEvent {
     readerId: string;
 }
 
+/** Long-press "Edit" — see docs/architecture/message-actions.md. */
+export interface IMessageEditEvent {
+    conversationId: string;
+    messageId: string;
+    text: string;
+}
+
 export interface IPresenceEvent {
     userId: string;
     status: "online" | "offline";
@@ -53,6 +60,7 @@ export interface ICallEndEvent {
 export interface IServerToClientEvents {
     "message:receive": (payload: IMessageReceiveEvent) => void;
     "message:ack": (payload: { messageId: string; conversationId: string }) => void;
+    "message:edit": (payload: IMessageEditEvent) => void;
     "typing:update": (payload: ITypingEvent) => void;
     "receipt:read": (payload: IReadReceiptEvent) => void;
     "presence:update": (payload: IPresenceEvent) => void;
@@ -64,6 +72,7 @@ export interface IServerToClientEvents {
 
 export interface IClientToServerEvents {
     "message:send": (payload: IMessageSendEvent) => void;
+    "message:edit": (payload: IMessageEditEvent) => void;
     "typing:update": (payload: ITypingEvent) => void;
     "receipt:read": (payload: IReadReceiptEvent) => void;
     "call:offer": (payload: ICallSignalEvent) => void;
