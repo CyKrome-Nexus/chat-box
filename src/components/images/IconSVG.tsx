@@ -37,8 +37,8 @@ const IconSVG: React.FC<SvgIconProps> = ({
 		<View
 			style={[
 				styles.iconContainer,
-				includeBorder ? styles.border : "",
-				isBackground ? { position: "absolute" } : "",
+				includeBorder ? styles.border : undefined,
+				isBackground ? { position: "absolute" } : undefined,
 				customStyles,
 			]}
 		>
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
 		padding: 10,
 	},
 	border: {
-		borderRadius: "100%",
+		borderRadius: 9999,
 		borderWidth: 0.7,
 		borderColor: "white",
 	},

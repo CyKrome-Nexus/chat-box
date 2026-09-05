@@ -33,7 +33,7 @@ const BIcon = ({
         onPress={onPress}
         style={[
           {
-            borderRadius: "100%",
+            borderRadius: width / 2,
             borderWidth: 1,
             borderColor,
             justifyContent: "center",

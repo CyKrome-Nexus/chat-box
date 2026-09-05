@@ -1,5 +1,4 @@
-import { Text, StyleSheet, StyleProp, TextStyle } from 'react-native'
-import { TextProps } from 'react-native-svg';
+import { Text, StyleSheet, StyleProp, TextStyle, TextProps } from 'react-native'
 
 
 type CustomTextProps = TextProps & {
@@ -8,7 +7,7 @@ type CustomTextProps = TextProps & {
 
 const CarmeText = (props: CustomTextProps) => {
    return (
-      <Text{...props} style={[styles.defaultFont, props.style]}> { props.children } </Text>
+      <Text {...props} style={[styles.defaultFont, props.style]}>{props.children}</Text>
    )
 }
 
