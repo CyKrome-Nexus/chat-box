@@ -1,6 +1,7 @@
 import { router, Tabs } from "expo-router";
-import { TouchableOpacity, View } from "react-native";
+import { Alert, TouchableOpacity, View } from "react-native";
 import { useEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
 
 import IconSVG from "@/src/components/images/IconSVG";
 import Colors from "@/src/constants/Colors";
@@ -84,6 +85,18 @@ export default function TabLayout() {
 						const user = useSelector((state: { user: IUser }) => state.user);
 						return (
 							<>
+								<TouchableOpacity
+									style={{ marginRight: 20 }}
+									onPress={() =>
+										Alert.alert("New", undefined, [
+											{ text: "New Group", onPress: () => router.push({ pathname: "/contact-picker", params: { mode: "group" } }) },
+											{ text: "New Broadcast List", onPress: () => router.push({ pathname: "/contact-picker", params: { mode: "broadcast" } }) },
+											{ text: "Cancel", style: "cancel" },
+										])
+									}
+								>
+									<Ionicons name="add-circle-outline" size={26} color="#000" />
+								</TouchableOpacity>
 								<TouchableOpacity style={{ marginRight: 30 }} onPress={() => router.push("/profile")}>
 									<Avatar data={user?.avatar} />
 								</TouchableOpacity>

@@ -70,14 +70,24 @@ const MessagesLayout = () => {
 									<TouchableOpacity
 										style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}
 										activeOpacity={0.7}
-										onPress={() => router.push({ pathname: "/contact-info", params: { user: params.user as string } })}
+										onPress={() =>
+											router.push(
+												user?.isGroup
+													? { pathname: "/group-info", params: { chatId: user?.id } }
+													: { pathname: "/contact-info", params: { user: params.user as string } }
+											)
+										}
 									>
 										<Avatar data={user?.avatar} isWhite={true} size={45} />
 										<View>
 											<Text style={{ fontSize: 20, fontWeight: 'bold' }}>{user?.name} </Text>
-											{user?.status && <>
-												<Text style={{ fontSize: 12}}>Active Now</Text>
-											</>}
+											{user?.isGroup ? (
+												<Text style={{ fontSize: 12 }}>{user?.participants?.length || 0} participants</Text>
+											) : user?.isBroadcast ? (
+												<Text style={{ fontSize: 12 }}>Broadcast List</Text>
+											) : (
+												user?.status && <Text style={{ fontSize: 12 }}>Active Now</Text>
+											)}
 										</View>
 									</TouchableOpacity>
 									<TouchableOpacity
@@ -86,24 +96,28 @@ const MessagesLayout = () => {
 									>
 										<Ionicons name="search" size={22} color="#000" />
 									</TouchableOpacity>
-									<BIcon
-										svg={phone}
-										height={22}
-										width={22}
-										iconHeight={22}
-										iconWidth={22}
-										style={{ marginHorizontal: 6 }}
-										onPress={() => startOutgoingCall(user, "audio")}
-									/>
-									<BIcon
-										svg={camera}
-										height={22}
-										width={22}
-										iconHeight={22}
-										iconWidth={22}
-										style={{ marginHorizontal: 6 }}
-										onPress={() => startOutgoingCall(user, "video")}
-									/>
+									{!user?.isGroup && !user?.isBroadcast && (
+										<>
+											<BIcon
+												svg={phone}
+												height={22}
+												width={22}
+												iconHeight={22}
+												iconWidth={22}
+												style={{ marginHorizontal: 6 }}
+												onPress={() => startOutgoingCall(user, "audio")}
+											/>
+											<BIcon
+												svg={camera}
+												height={22}
+												width={22}
+												iconHeight={22}
+												iconWidth={22}
+												style={{ marginHorizontal: 6 }}
+												onPress={() => startOutgoingCall(user, "video")}
+											/>
+										</>
+									)}
 								</View>
 							</>
 						);

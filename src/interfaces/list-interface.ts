@@ -10,6 +10,23 @@ interface IRibbonParent {
     name: string,
 }
 
+export type TGroupRole = "admin" | "member"
+
+export interface IGroupParticipant {
+    id: string
+    name: string
+    avatar?: IAvatar
+    role: TGroupRole
+    /** Color-coded username shown on their bubbles in the group — see groups.md. */
+    color: string
+}
+
+export interface IGroupSettings {
+    whoCanSendMessages: "all" | "admins"
+    whoCanEditInfo: "all" | "admins"
+    requireAdminApproval: boolean
+}
+
 // Chat
 export interface IChatRibbon extends IRibbonParent {
     id: string
@@ -23,11 +40,16 @@ export interface IChatRibbon extends IRibbonParent {
     archived?: boolean
     /** Unsent input-bar text, auto-saved when the user leaves the chat screen. */
     draft?: string
-    /**
-     * Reserved for the "Groups" filter pill — always false until groups
-     * (#33) exist. See docs/architecture/chat-organization.md.
-     */
+    /** See docs/architecture/groups.md. */
     isGroup?: boolean
+    groupDescription?: string
+    participants?: IGroupParticipant[]
+    groupSettings?: IGroupSettings
+    /** Invite code for chatbox.link/join/[code] — see groups.md. */
+    inviteCode?: string
+    /** Broadcast List — a fan-out send target, not a real multi-user chat. */
+    isBroadcast?: boolean
+    broadcastRecipientIds?: string[]
     /** Disappearing Messages timer for this conversation. "off" (default) means messages never expire. */
     disappearingTimer?: "off" | "24h" | "7d" | "90d"
 }

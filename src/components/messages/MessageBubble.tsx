@@ -172,6 +172,11 @@ const MessageBubble = ({
 							</Text>
 						) : (
 							<>
+								{!isSender && message.senderName && (
+									<Text style={[styles.senderNameLabel, { color: message.senderColor || Colors.focused }]}>
+										{message.senderName}
+									</Text>
+								)}
 								{message.replyTo && (
 									<TouchableOpacity
 										onPress={() => onPressReplyQuote?.(message.replyTo!.messageId)}
@@ -353,5 +358,10 @@ const styles = StyleSheet.create({
 	searchHighlight: {
 		backgroundColor: "#FFF3B0",
 		color: "#000E08",
+	},
+	senderNameLabel: {
+		fontSize: 12,
+		fontWeight: "700",
+		marginBottom: 2,
 	},
 });

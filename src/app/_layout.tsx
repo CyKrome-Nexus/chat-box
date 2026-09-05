@@ -68,6 +68,11 @@ const AppGate = () => {
 				<Stack.Screen name="story-viewer" options={{ presentation: "fullScreenModal", animation: "fade" }} />
 				<Stack.Screen name="story-text-editor" options={{ presentation: "fullScreenModal" }} />
 				<Stack.Screen name="contact-info" options={{ presentation: "card" }} />
+				<Stack.Screen name="group-info" options={{ presentation: "card" }} />
+				<Stack.Screen name="contact-picker" options={{ presentation: "card" }} />
+				<Stack.Screen name="group-create-details" options={{ presentation: "card" }} />
+				<Stack.Screen name="broadcast-create-details" options={{ presentation: "card" }} />
+				<Stack.Screen name="join/[code]" options={{ presentation: "fullScreenModal" }} />
 				<Stack.Screen name="shared-media" options={{ presentation: "card" }} />
 				<Stack.Screen name="starred-messages" options={{ presentation: "card" }} />
 				<Stack.Screen name="profile" options={{ presentation: "modal" }} />

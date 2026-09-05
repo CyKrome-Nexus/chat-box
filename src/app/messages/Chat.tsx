@@ -45,7 +45,7 @@ import {
 	updateAttachmentProgress,
 	updateMessageStatus,
 } from "@/src/redux/features/messagesSlice";
-import { markChatRead, setChatDraft } from "@/src/redux/features/chatsSlice";
+import { colorForParticipant, markChatRead, setChatDraft } from "@/src/redux/features/chatsSlice";
 import { useChatRealtime } from "@/src/hooks/useChatRealtime";
 import { useAttachmentPicker } from "@/src/hooks/useAttachmentPicker";
 import { useVoiceRecorder } from "@/src/hooks/useVoiceRecorder";
@@ -55,7 +55,7 @@ import { formatDuration } from "@/src/lib/audio/format";
 import { mediaComposerBridge } from "@/src/lib/media/mediaComposerBridge";
 import { computeExpiresAt } from "@/src/lib/security/disappearingMessages";
 import { IAttachment, IMessage } from "@/src/interfaces/message-interface";
-import { IChatRibbon } from "@/src/interfaces/list-interface";
+import { IChatRibbon, IGroupParticipant } from "@/src/interfaces/list-interface";
 
 const SLIDE_TO_CANCEL_THRESHOLD = 80;
 const SWIPE_UP_TO_LOCK_THRESHOLD = 80;
@@ -116,6 +116,16 @@ const Chat = () => {
 	const disappearingTimer = useSelector(
 		(state: any) => (state.chats.chats as IChatRibbon[]).find((c) => c.id === conversationId)?.disappearingTimer
 	);
+	const liveChat = useSelector((state: any) =>
+		(state.chats.chats as IChatRibbon[]).find((c) => c.id === conversationId)
+	);
+	const isGroup = !!liveChat?.isGroup;
+	const isBroadcast = !!liveChat?.isBroadcast;
+	const groupParticipants = liveChat?.participants || [];
+	const myParticipant = groupParticipants.find((p: IGroupParticipant) => p.id === "me");
+	const canSendInGroup =
+		!isGroup || liveChat?.groupSettings?.whoCanSendMessages !== "admins" || myParticipant?.role === "admin";
+	const [mentionQuery, setMentionQuery] = useState<string | null>(null);
 	// Lazy initializer: only reads the persisted draft once, on mount — later
 	// re-renders (e.g. from other chatsSlice updates) shouldn't stomp on
 	// whatever the user is actively typing.
@@ -263,8 +273,52 @@ const Chat = () => {
 		}, 2500);
 	};
 
+	// Broadcast Lists fan out one composed message into each recipient's own
+	// 1-on-1 conversation, plus a copy into the list's own history — there's
+	// no shared "room" the way a group has one. See docs/architecture/groups.md.
+	const handleSendBroadcast = () => {
+		const trimmed = text.trim();
+		if (!trimmed || !liveChat?.broadcastRecipientIds) return;
+
+		const timestamp = Date.now();
+		liveChat.broadcastRecipientIds.forEach((recipientId: string) => {
+			dispatch(
+				composeMessage({
+					conversationId: recipientId,
+					message: {
+						id: `${timestamp}-${recipientId}-${Math.random().toString(36).slice(2, 6)}`,
+						conversationId: recipientId,
+						text: trimmed,
+						type: "sender",
+						timestamp,
+					},
+					queued: false,
+				})
+			);
+		});
+		dispatch(
+			composeMessage({
+				conversationId,
+				message: {
+					id: `${timestamp}-bc-${Math.random().toString(36).slice(2, 6)}`,
+					conversationId,
+					text: trimmed,
+					type: "sender",
+					timestamp,
+				},
+				queued: false,
+			})
+		);
+		setText("");
+		setInputHeight(MIN_INPUT_HEIGHT);
+	};
+
 	const handleSend = () => {
-		if (!text.trim()) return;
+		if (!text.trim() || !canSendInGroup) return;
+		if (isBroadcast) {
+			handleSendBroadcast();
+			return;
+		}
 
 		if (editingMessage) {
 			editMessageRealtime(editingMessage.id, text);
@@ -762,6 +816,37 @@ const Chat = () => {
 						/>
 					)}
 
+					{isGroup && mentionQuery !== null && (
+						<View style={styles.mentionDropdown}>
+							{groupParticipants
+								.filter(
+									(p: IGroupParticipant) =>
+										p.id !== "me" && p.name.toLowerCase().includes(mentionQuery.toLowerCase())
+								)
+								.slice(0, 5)
+								.map((p: IGroupParticipant) => (
+									<TouchableOpacity
+										key={p.id}
+										style={styles.mentionRow}
+										onPress={() => {
+											setText((prev) => prev.replace(/@(\w*)$/, `@${p.name.split(" ")[0]} `));
+											setMentionQuery(null);
+										}}
+									>
+										<Text style={[styles.mentionName, { color: colorForParticipant(groupParticipants.indexOf(p)) }]}>
+											{p.name}
+										</Text>
+									</TouchableOpacity>
+								))}
+						</View>
+					)}
+
+					{isGroup && !canSendInGroup && (
+						<View style={styles.adminOnlyBanner}>
+							<Text style={styles.adminOnlyBannerText}>Only admins can send messages in this group</Text>
+						</View>
+					)}
+
 					<View style={styles.inputBar}>
 						{recordingMode === "dragging" ? (
 							noteMode === "video" ? (
@@ -817,8 +902,9 @@ const Chat = () => {
 								<View style={styles.inputContainer}>
 									<TextInput
 										style={[styles.textInput, { height: inputHeight }]}
-										placeholder="Type your message"
+										placeholder={canSendInGroup ? "Type your message" : "Only admins can send messages"}
 										placeholderTextColor="#797C7B"
+										editable={canSendInGroup}
 										returnKeyType="send"
 										blurOnSubmit={false}
 										value={text}
@@ -827,6 +913,10 @@ const Chat = () => {
 										onChangeText={(value) => {
 											setText(value);
 											if (value.trim()) notifyTyping();
+											if (isGroup) {
+												const match = value.match(/@(\w*)$/);
+												setMentionQuery(match ? match[1] : null);
+											}
 										}}
 										multiline
 										onContentSizeChange={(e) => {
@@ -1139,6 +1229,32 @@ const styles = StyleSheet.create({
 		top: 0,
 		backgroundColor: "rgba(0,0,0,0.3)",
 		justifyContent: "flex-end",
+	},
+	mentionDropdown: {
+		backgroundColor: "#fff",
+		borderTopWidth: 1,
+		borderTopColor: "#eee",
+		maxHeight: 180,
+	},
+	mentionRow: {
+		paddingHorizontal: 16,
+		paddingVertical: 10,
+		borderBottomWidth: 1,
+		borderBottomColor: "#f2f2f2",
+	},
+	mentionName: {
+		fontSize: 14,
+		fontWeight: "600",
+	},
+	adminOnlyBanner: {
+		paddingHorizontal: 16,
+		paddingVertical: 6,
+		backgroundColor: "#FFF3E0",
+	},
+	adminOnlyBannerText: {
+		fontSize: 12,
+		color: "#B26A00",
+		textAlign: "center",
 	},
 });
 
