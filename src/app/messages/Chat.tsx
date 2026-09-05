@@ -46,6 +46,7 @@ import {
 	updateMessageStatus,
 } from "@/src/redux/features/messagesSlice";
 import { colorForParticipant, markChatRead, setChatDraft } from "@/src/redux/features/chatsSlice";
+import { setActiveConversationId } from "@/src/redux/features/connectionSlice";
 import { useChatRealtime } from "@/src/hooks/useChatRealtime";
 import { useAttachmentPicker } from "@/src/hooks/useAttachmentPicker";
 import { useVoiceRecorder } from "@/src/hooks/useVoiceRecorder";
@@ -236,6 +237,16 @@ const Chat = () => {
 	// badge/filter (see chat-organization.md).
 	useEffect(() => {
 		dispatch(markChatRead(conversationId));
+	}, [conversationId, dispatch]);
+
+	// Tracks which conversation is currently on screen so an incoming message
+	// for THIS conversation doesn't also trigger a redundant system
+	// notification/in-app banner — see docs/architecture/push-notifications.md.
+	useEffect(() => {
+		dispatch(setActiveConversationId(conversationId));
+		return () => {
+			dispatch(setActiveConversationId(null));
+		};
 	}, [conversationId, dispatch]);
 
 	// Sends a read receipt for the newest received message — gated behind

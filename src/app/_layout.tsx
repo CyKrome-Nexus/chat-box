@@ -17,8 +17,11 @@ import { useIncomingCallNotification } from "../hooks/useIncomingCallNotificatio
 import { useAppLock } from "../hooks/useAppLock";
 import { useDisappearingMessagesSweep } from "../hooks/useDisappearingMessagesSweep";
 import { useStoriesExpirySweep } from "../hooks/useStoriesExpirySweep";
+import { useMessageNotifications } from "../hooks/useMessageNotifications";
+import { useBadgeCountSync } from "../hooks/useBadgeCountSync";
 import FloatingCallBubble from "../components/calling/FloatingCallBubble";
 import AppLockScreen from "../components/security/AppLockScreen";
+import InAppMessageBanner from "../components/notifications/InAppMessageBanner";
 import { Stack } from "expo-router";
 
 SplashScreen.preventAutoHideAsync();
@@ -42,6 +45,8 @@ const AppGate = () => {
 	useIncomingCallNotification();
 	useDisappearingMessagesSweep();
 	useStoriesExpirySweep();
+	useMessageNotifications();
+	useBadgeCountSync();
 	const { isLocked, unlock } = useAppLock();
 
 	useEffect(() => {
@@ -85,6 +90,7 @@ const AppGate = () => {
 				<Stack.Screen name="settings-storage" />
 			</Stack>
 			<FloatingCallBubble />
+			<InAppMessageBanner />
 			<AppLockScreen visible={isLocked} onUnlock={unlock} />
 			</KeyboardProvider>
 		</GestureHandlerRootView>
