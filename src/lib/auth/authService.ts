@@ -164,3 +164,8 @@ export const resetPassword = async ({
     delete otps[key];
     await AsyncStorage.setItem(OTP_KEY, JSON.stringify(otps));
 };
+
+export const deleteAccount = async (identifier: string): Promise<void> => {
+    const users = await getUsers();
+    await saveUsers(users.filter((u) => u.identifier !== normalize(identifier)));
+};

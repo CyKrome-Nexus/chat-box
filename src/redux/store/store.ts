@@ -8,6 +8,7 @@ import chatsReducer from "../features/chatsSlice";
 import sessionReducer from "../features/sessionSlice";
 import contactsReducer from "../features/contactsSlice";
 import callReducer from "../features/callSlice";
+import settingsReducer from "../features/settingsSlice";
 
 const rootReducer = combineReducers({
    user: authReducer,
@@ -17,6 +18,7 @@ const rootReducer = combineReducers({
    session: sessionReducer,
    contacts: contactsReducer,
    call: callReducer,
+   settings: settingsReducer,
 });
 
 export const store = configureStore({

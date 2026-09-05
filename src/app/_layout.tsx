@@ -8,6 +8,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { store } from "../redux/store/store";
 import { useRealtimeConnection } from "../hooks/useRealtimeConnection";
 import { useSessionPersistence } from "../hooks/useSessionPersistence";
+import { useSettingsPersistence } from "../hooks/useSettingsPersistence";
 import { Stack } from "expo-router";
 
 SplashScreen.preventAutoHideAsync();
@@ -23,6 +24,7 @@ const AppGate = () => {
 	const userId = useSelector((state: any) => state.user?._id || state.user?.username);
 
 	useSessionPersistence();
+	useSettingsPersistence();
 	useRealtimeConnection(userId);
 
 	useEffect(() => {
@@ -44,6 +46,11 @@ const AppGate = () => {
 				<Stack.Screen name="profile" options={{ presentation: "modal" }} />
 				<Stack.Screen name="qr-code" options={{ presentation: "modal" }} />
 				<Stack.Screen name="qr-scanner" options={{ presentation: "fullScreenModal" }} />
+				<Stack.Screen name="settings-account" />
+				<Stack.Screen name="settings-chat" />
+				<Stack.Screen name="settings-notifications" />
+				<Stack.Screen name="settings-help" />
+				<Stack.Screen name="settings-storage" />
 			</Stack>
 		</GestureHandlerRootView>
 	);

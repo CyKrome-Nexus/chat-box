@@ -10,12 +10,18 @@ import { ISettingsRibbon } from "@/src/interfaces/list-interface";
 import IconSVG from "../images/IconSVG";
 
 
-const SettingsRibbon = ({ content }: { content: ISettingsRibbon }) => {
+const SettingsRibbon = ({
+	content,
+	onPress,
+}: {
+	content: ISettingsRibbon;
+	onPress?: () => void;
+}) => {
 	return (
 		<View style={styles.row}>
 			{/* Swipeable ribbon content */}
 			<Animated.View style={[styles.ribbon]}>
-				<TouchableOpacity style={styles.container}>
+				<TouchableOpacity style={styles.container} onPress={onPress}>
 					<View style={styles.content}>
 						<View style={styles.iconContainer}>
 							<IconSVG svg={content?.svg} />
