@@ -22,6 +22,8 @@ export interface IAttachment {
     viewOnce?: boolean;
     /** Image/video attachments only: set once the recipient has opened a view-once attachment. */
     viewOnceOpened?: boolean;
+    /** Set once this attachment's AES-256-GCM encrypt→verify→decrypt round trip has been confirmed. See e2ee-media.md. */
+    mediaEncryptionVerified?: boolean;
 }
 
 export interface IMessage {

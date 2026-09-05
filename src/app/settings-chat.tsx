@@ -1,13 +1,21 @@
+import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import * as Sharing from "expo-sharing";
+import * as DocumentPicker from "expo-document-picker";
 
 import SettingsScreenHeader from "@/src/components/settings/SettingsScreenHeader";
 import SettingToggleRow from "@/src/components/settings/SettingToggleRow";
+import PassphraseModal from "@/src/components/settings/PassphraseModal";
 import Colors from "@/src/constants/Colors";
 import { setLastBackupAt, setTheme, setUnarchiveOnNewMessage, TTheme } from "@/src/redux/features/settingsSlice";
-import { clearAllMessages } from "@/src/redux/features/messagesSlice";
+import { clearAllMessages, hydrateMessages } from "@/src/redux/features/messagesSlice";
+import { hydrateChats } from "@/src/redux/features/chatsSlice";
+import { hydrateManualContacts } from "@/src/redux/features/contactsSlice";
+import { hydrateCallHistory } from "@/src/redux/features/callSlice";
+import { createEncryptedBackup, persistRestoredBackup, restoreEncryptedBackup } from "@/src/lib/backup/encryptedBackup";
 
 const THEME_OPTIONS: { key: TTheme; label: string }[] = [
 	{ key: "system", label: "System" },
@@ -20,6 +28,55 @@ const SettingsChat = () => {
 	const theme = useSelector((state: any) => state.settings.theme as TTheme);
 	const lastBackupAt = useSelector((state: any) => state.settings.lastBackupAt as number | null);
 	const unarchiveOnNewMessage = useSelector((state: any) => state.settings.chat.unarchiveOnNewMessage as boolean);
+	const [backupModal, setBackupModal] = useState(false);
+	const [restoreModal, setRestoreModal] = useState(false);
+	const [pendingRestoreUri, setPendingRestoreUri] = useState<string | null>(null);
+	const [isWorking, setIsWorking] = useState(false);
+
+	const handleCreateBackup = async (passphrase: string) => {
+		setBackupModal(false);
+		setIsWorking(true);
+		try {
+			const fileUri = await createEncryptedBackup(passphrase);
+			dispatch(setLastBackupAt(Date.now()));
+			if (await Sharing.isAvailableAsync()) {
+				await Sharing.shareAsync(fileUri, { mimeType: "application/octet-stream" });
+			} else {
+				Alert.alert("Backup created", `Saved to ${fileUri}`);
+			}
+		} catch {
+			Alert.alert("Backup failed", "Something went wrong while creating the backup.");
+		} finally {
+			setIsWorking(false);
+		}
+	};
+
+	const handlePickRestoreFile = async () => {
+		const result = await DocumentPicker.getDocumentAsync({ type: "*/*", copyToCacheDirectory: true });
+		if (result.canceled || !result.assets?.[0]) return;
+		setPendingRestoreUri(result.assets[0].uri);
+		setRestoreModal(true);
+	};
+
+	const handleRestoreBackup = async (passphrase: string) => {
+		setRestoreModal(false);
+		if (!pendingRestoreUri) return;
+		setIsWorking(true);
+		try {
+			const restored = await restoreEncryptedBackup(pendingRestoreUri, passphrase);
+			dispatch(hydrateChats(restored.conversations));
+			dispatch(hydrateMessages(restored.messagesByConversation));
+			dispatch(hydrateManualContacts(restored.manualContacts));
+			dispatch(hydrateCallHistory(restored.callLogs));
+			await persistRestoredBackup(restored);
+			Alert.alert("Restored", "Your chats have been restored from the backup.");
+		} catch {
+			Alert.alert("Restore failed", "Wrong passphrase, or this file isn't a valid Chatbox backup.");
+		} finally {
+			setIsWorking(false);
+			setPendingRestoreUri(null);
+		}
+	};
 
 	const handleClearAllChats = () => {
 		Alert.alert("Clear all chats", "This deletes every message in every conversation. This can't be undone.", [
@@ -70,16 +127,39 @@ const SettingsChat = () => {
 			<Text style={styles.note}>
 				{lastBackupAt
 					? `Last backed up ${new Date(lastBackupAt).toLocaleString()}`
-					: "You haven't backed up your chats yet."}
+					: "You haven't backed up your chats yet."}{" "}
+				Backups are encrypted end-to-end with a passphrase only you know — see Encryption docs.
 			</Text>
-			<TouchableOpacity style={styles.primaryButton} onPress={() => dispatch(setLastBackupAt(Date.now()))}>
-				<Text style={styles.primaryButtonText}>Back Up Now</Text>
+			<TouchableOpacity style={styles.primaryButton} onPress={() => setBackupModal(true)} disabled={isWorking}>
+				<Text style={styles.primaryButtonText}>Create Encrypted Backup</Text>
+			</TouchableOpacity>
+			<TouchableOpacity style={styles.secondaryButton} onPress={handlePickRestoreFile} disabled={isWorking}>
+				<Text style={styles.secondaryButtonText}>Restore from Backup</Text>
 			</TouchableOpacity>
 
 			<Text style={styles.sectionTitle}>Danger Zone</Text>
 			<TouchableOpacity style={styles.dangerButton} onPress={handleClearAllChats}>
 				<Text style={styles.dangerButtonText}>Clear All Chats</Text>
 			</TouchableOpacity>
+
+			<PassphraseModal
+				visible={backupModal}
+				title="Set a Backup Passphrase"
+				confirmLabel="Create Backup"
+				requireConfirmation
+				onCancel={() => setBackupModal(false)}
+				onSubmit={handleCreateBackup}
+			/>
+			<PassphraseModal
+				visible={restoreModal}
+				title="Enter Backup Passphrase"
+				confirmLabel="Restore"
+				onCancel={() => {
+					setRestoreModal(false);
+					setPendingRestoreUri(null);
+				}}
+				onSubmit={handleRestoreBackup}
+			/>
 		</ScrollView>
 	);
 };
@@ -151,6 +231,19 @@ const styles = StyleSheet.create({
 	},
 	primaryButtonText: {
 		color: "#fff",
+		fontWeight: "700",
+		fontSize: 15,
+	},
+	secondaryButton: {
+		borderWidth: 1,
+		borderColor: Colors.focused,
+		borderRadius: 14,
+		paddingVertical: 14,
+		alignItems: "center",
+		marginTop: 10,
+	},
+	secondaryButtonText: {
+		color: Colors.focused,
 		fontWeight: "700",
 		fontSize: 15,
 	},
