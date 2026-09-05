@@ -32,11 +32,21 @@ import {
 	togglePinChat,
 } from "@/src/redux/features/chatsSlice";
 import Colors from "@/src/constants/Colors";
+import { useDisplayScale } from "@/src/lib/display/useDisplayScale";
 
 const BUTTON_WIDTH = Dimensions.get("window").width * 0.45;
 
-const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
+const ChatRibbon = ({
+	content,
+	onSelect,
+}: {
+	content: IChatRibbon;
+	/** Master-detail (tablet/foldable) selects a chat into the right pane
+	 * instead of pushing a new stack screen — see MasterDetailLayout.tsx. */
+	onSelect?: (content: IChatRibbon) => void;
+}) => {
 	const dispatch = useDispatch();
+	const { scaleFont } = useDisplayScale();
 	const pinnedCount = useSelector(
 		(state: any) => state.chats.chats.filter((c: IChatRibbon) => c.pinned).length
 	);
@@ -128,6 +138,11 @@ const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
 			return;
 		}
 
+		if (onSelect) {
+			onSelect(content);
+			return;
+		}
+
 		router.push({
 			pathname: `/messages/Chat`,
 			params: {
@@ -182,7 +197,7 @@ const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
 							<View style={styles.mainContent}>
 								<View style={styles.nameRow}>
 									{content.pinned && <Ionicons name="pin" size={13} color={Colors.focused} />}
-									<Text style={{ fontSize: 22, fontWeight: "bold" }}>
+									<Text style={{ fontSize: scaleFont(22), fontWeight: "bold" }} numberOfLines={1}>
 										{content?.name}
 									</Text>
 									{content?.muted && (
@@ -190,11 +205,11 @@ const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
 									)}
 								</View>
 								{content.draft ? (
-									<Text style={styles.draftText} numberOfLines={1}>
+									<Text style={[styles.draftText, { fontSize: scaleFont(12) }]} numberOfLines={1}>
 										Draft: {content.draft}
 									</Text>
 								) : (
-									<Text style={{ fontSize: 12, color: "#797C7B" }} numberOfLines={1}>
+									<Text style={{ fontSize: scaleFont(12), color: "#797C7B" }} numberOfLines={1}>
 										{content?.lastMessage}
 									</Text>
 								)}
@@ -202,7 +217,7 @@ const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
 						</View>
 						<View style={styles.statusContent}>
 							{content?.lastStatus ? (
-								<Text style={styles.statusText}>{content?.lastStatus}</Text>
+								<Text style={[styles.statusText, { fontSize: scaleFont(12) }]}>{content?.lastStatus}</Text>
 							) : null}
 							{content?.notificationCount && content?.notificationCount > 0 ? (
 								<View style={styles.notificationCountDot}>
@@ -223,7 +238,7 @@ const styles = StyleSheet.create({
 	row: {
 		width: "100%",
 		position: "relative",
-		height: 80,
+		minHeight: 80,
 		marginBottom: 4,
 		overflow: "hidden",
 	},
@@ -254,7 +269,6 @@ const styles = StyleSheet.create({
 	},
 	ribbon: {
 		width: "100%",
-		height: "100%",
 		zIndex: 2,
 		backgroundColor: "white",
 	},
@@ -263,7 +277,7 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "center",
 		width: "100%",
-		height: 80,
+		minHeight: 80,
 		paddingVertical: 10,
 		// paddingHorizontal: 20,  // This is handled in ListDrawer Component Itself
 		gap: 5,
@@ -295,7 +309,7 @@ const styles = StyleSheet.create({
 	statusContent: {
 		flex: 0.28,
 		alignItems: "flex-end",
-		height: "100%",
+		alignSelf: "stretch",
 		gap: 10,
 		paddingBottom: 2,
 		paddingRight: 10,

@@ -7,8 +7,10 @@ import { Ionicons } from "@expo/vector-icons";
 import ListDrawer from "@/src/components/ListDrawer";
 import ChatRibbon from "@/src/components/riboons/ChatRibbon";
 import StoriesCarousel from "@/src/components/stories/StoriesCarousel";
+import MasterDetailLayout from "@/src/components/layout/MasterDetailLayout";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
 import Colors from "@/src/constants/Colors";
+import { useResponsiveLayout } from "@/src/lib/display/useResponsiveLayout";
 
 type TFilter = "all" | "unread" | "groups";
 const FILTERS: { key: TFilter; label: string }[] = [
@@ -29,6 +31,9 @@ const Messages = () => {
 	const chats = useSelector((state: any) => state.chats.chats as IChatRibbon[]);
 	const [filter, setFilter] = useState<TFilter>("all");
 	const [showArchived, setShowArchived] = useState(false);
+	const { isTablet } = useResponsiveLayout();
+	const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+	const selectedChat = useMemo(() => chats.find((c) => c.id === selectedChatId) || null, [chats, selectedChatId]);
 
 	const archivedChats = useMemo(() => chats.filter((c) => c.archived), [chats]);
 	const archivedUnreadCount = useMemo(
@@ -47,14 +52,16 @@ const Messages = () => {
 		return sortChats(filtered);
 	}, [chats, filter]);
 
-	return (
+	const listPane = (
 		<View style={styles.container}>
 			<ListDrawer>
 				<FlatList
 					data={showArchived ? sortChats(archivedChats).concat(visibleChats) : visibleChats}
 					scrollEnabled
 					keyExtractor={(item) => item.id}
-					renderItem={({ item }) => <ChatRibbon content={item} />}
+					renderItem={({ item }) => (
+						<ChatRibbon content={item} onSelect={isTablet ? (content) => setSelectedChatId(content.id) : undefined} />
+					)}
 					contentContainerStyle={{ paddingBottom: 180 }}
 					ListHeaderComponent={
 						<View>
@@ -100,6 +107,12 @@ const Messages = () => {
 			</ListDrawer>
 		</View>
 	);
+
+	if (isTablet) {
+		return <MasterDetailLayout listPane={listPane} selectedChat={selectedChat} />;
+	}
+
+	return listPane;
 };
 
 const styles = StyleSheet.create({
