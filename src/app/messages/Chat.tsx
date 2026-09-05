@@ -98,7 +98,7 @@ const Chat = () => {
 	const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
 	const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
 	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-	const [viewerUri, setViewerUri] = useState<string | undefined>();
+	const [viewerMessageId, setViewerMessageId] = useState<string | undefined>();
 	const [fullscreenVideoUri, setFullscreenVideoUri] = useState<string | undefined>();
 	const [replyTo, setReplyTo] = useState<IMessage | null>(null);
 	const flatListRef = useRef<FlatList>(null);
@@ -152,6 +152,24 @@ const Chat = () => {
 	}, [conversationId]);
 
 	const displayData = useMemo(() => buildDisplayData(messages), [messages]);
+
+	// Every image/video in the conversation, in chronological order, so the
+	// lightbox can swipe through them (see media-gallery.md).
+	const mediaItems = useMemo(
+		() =>
+			[...messages]
+				.sort((a, b) => a.timestamp - b.timestamp)
+				.filter(
+					(m): m is IMessage & { attachment: IAttachment } =>
+						!!m.attachment && (m.attachment.type === "image" || m.attachment.type === "video")
+				)
+				.map((m) => ({
+					messageId: m.id,
+					uri: m.attachment.uri || "",
+					type: m.attachment.type as "image" | "video",
+				})),
+		[messages]
+	);
 
 	// Lets voice notes auto-play the next one in the thread on finish (see
 	// audioPlaybackManager.playNext / docs/architecture/voice-note-studio.md).
@@ -397,7 +415,7 @@ const Chat = () => {
 				<MessageBubble
 					message={item.message}
 					avatar={user?.avatar}
-					onPressImage={setViewerUri}
+					onPressMedia={setViewerMessageId}
 					onPressVideoNote={setFullscreenVideoUri}
 					onSwipeReply={setReplyTo}
 				/>
@@ -612,9 +630,11 @@ const Chat = () => {
 					onSelect={handleAttachmentOption}
 				/>
 				<MediaViewerModal
-					uri={viewerUri}
-					visible={!!viewerUri}
-					onClose={() => setViewerUri(undefined)}
+					items={mediaItems}
+					initialMessageId={viewerMessageId}
+					conversationId={conversationId}
+					visible={!!viewerMessageId}
+					onClose={() => setViewerMessageId(undefined)}
 				/>
 				<FullscreenVideoModal
 					uri={fullscreenVideoUri}

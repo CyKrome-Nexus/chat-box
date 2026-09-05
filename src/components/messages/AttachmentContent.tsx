@@ -1,9 +1,11 @@
 import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch } from "react-redux";
+import { router } from "expo-router";
 
 import { IAttachment } from "@/src/interfaces/message-interface";
 import { markAttachmentViewed } from "@/src/redux/features/messagesSlice";
+import { getDocumentIcon } from "@/src/lib/media/documentIcon";
 import AudioMessageBubble from "./AudioMessageBubble";
 import VideoNoteBubble from "./VideoNoteBubble";
 
@@ -18,14 +20,15 @@ const AttachmentContent = ({
 	conversationId,
 	attachment,
 	isSender,
-	onPressImage,
+	onPressMedia,
 	onPressVideoNote,
 }: {
 	messageId: string;
 	conversationId: string;
 	attachment: IAttachment;
 	isSender: boolean;
-	onPressImage?: (uri: string) => void;
+	/** Opens the full-conversation lightbox at this message's image/video. */
+	onPressMedia?: (messageId: string) => void;
 	onPressVideoNote?: (uri: string) => void;
 }) => {
 	const dispatch = useDispatch();
@@ -69,7 +72,7 @@ const AttachmentContent = ({
 				style={[styles.mediaWrapper, styles.viewOnceCard]}
 				onPress={() => {
 					dispatch(markAttachmentViewed({ conversationId, messageId }));
-					if (attachment.uri) onPressImage?.(attachment.uri);
+					onPressMedia?.(messageId);
 				}}
 			>
 				<Ionicons name="flame" size={26} color="#fff" />
@@ -83,8 +86,7 @@ const AttachmentContent = ({
 			<TouchableOpacity
 				activeOpacity={0.85}
 				style={styles.mediaWrapper}
-				onPress={() => attachment.uri && onPressImage?.(attachment.uri)}
-				disabled={attachment.type === "video"}
+				onPress={() => onPressMedia?.(messageId)}
 			>
 				<Image source={{ uri: attachment.uri }} style={styles.mediaImage} />
 				{attachment.type === "video" && (
@@ -110,19 +112,29 @@ const AttachmentContent = ({
 	}
 
 	if (attachment.type === "document") {
+		const icon = getDocumentIcon(attachment.name, attachment.mimeType);
 		return (
-			<View style={styles.documentRow}>
+			<TouchableOpacity
+				style={styles.documentRow}
+				onPress={() =>
+					attachment.uri &&
+					router.push({
+						pathname: "/document-preview",
+						params: {
+							uri: attachment.uri,
+							name: attachment.name || "Document",
+							mimeType: attachment.mimeType || "",
+						},
+					})
+				}
+			>
 				<View
 					style={[
 						styles.documentIcon,
 						{ backgroundColor: isSender ? "rgba(255,255,255,0.15)" : "#FFFFFF" },
 					]}
 				>
-					<Ionicons
-						name="document-text"
-						size={24}
-						color={isSender ? "#FFFFFF" : "#24786D"}
-					/>
+					<Ionicons name={icon.name} size={24} color={isSender ? "#FFFFFF" : icon.color} />
 				</View>
 				<View style={styles.documentMeta}>
 					<Text
@@ -140,7 +152,7 @@ const AttachmentContent = ({
 						{Math.round(attachment.uploadProgress ?? 0)}%
 					</Text>
 				)}
-			</View>
+			</TouchableOpacity>
 		);
 	}
 
