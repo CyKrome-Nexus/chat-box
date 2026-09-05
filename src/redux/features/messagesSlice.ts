@@ -105,6 +105,16 @@ export const messagesSlice = createSlice({
             const message = findMessage(state, conversationId, messageId);
             if (message?.attachment) message.attachment.viewOnceOpened = true;
         },
+        /** Lightbox "Delete" action, or any other single-message delete. */
+        deleteMessage: (
+            state,
+            action: PayloadAction<{ conversationId: string; messageId: string }>
+        ) => {
+            const { conversationId, messageId } = action.payload;
+            state.byConversation[conversationId] = (state.byConversation[conversationId] || []).filter(
+                (m) => m.id !== messageId
+            );
+        },
         /** Settings > Chat > "Clear all chats". */
         clearAllMessages: (state) => {
             state.byConversation = {};
@@ -125,6 +135,7 @@ export const {
     seedConversation,
     updateAttachmentProgress,
     markAttachmentViewed,
+    deleteMessage,
     clearAllMessages,
     hydrateMessages,
 } = messagesSlice.actions;

@@ -66,14 +66,19 @@ const MessagesLayout = () => {
 										paddingLeft: 10,
 									}}
 								>
-									<Avatar data={user?.avatar} isWhite={true} size={45} />
-									<View>
-										<Text style={{ fontSize: 20, fontWeight: 'bold' }}>{user?.name} </Text>
-										{user?.status && <>
-											<Text style={{ fontSize: 12}}>Active Now</Text>
-										</>}
-									</View>
-									<View style={{ flex: 1 }} />
+									<TouchableOpacity
+										style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}
+										activeOpacity={0.7}
+										onPress={() => router.push({ pathname: "/contact-info", params: { user: params.user as string } })}
+									>
+										<Avatar data={user?.avatar} isWhite={true} size={45} />
+										<View>
+											<Text style={{ fontSize: 20, fontWeight: 'bold' }}>{user?.name} </Text>
+											{user?.status && <>
+												<Text style={{ fontSize: 12}}>Active Now</Text>
+											</>}
+										</View>
+									</TouchableOpacity>
 									<BIcon
 										svg={phone}
 										height={22}

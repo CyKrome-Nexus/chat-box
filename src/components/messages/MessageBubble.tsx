@@ -63,13 +63,13 @@ const StatusTicks = ({ status }: { status?: IMessage["status"] }) => {
 const MessageBubble = ({
 	message,
 	avatar,
-	onPressImage,
+	onPressMedia,
 	onPressVideoNote,
 	onSwipeReply,
 }: {
 	message: IMessage;
 	avatar?: IAvatar;
-	onPressImage?: (uri: string) => void;
+	onPressMedia?: (messageId: string) => void;
 	onPressVideoNote?: (uri: string) => void;
 	onSwipeReply?: (message: IMessage) => void;
 }) => {
@@ -153,7 +153,7 @@ const MessageBubble = ({
 								conversationId={message.conversationId}
 								attachment={message.attachment}
 								isSender={isSender}
-								onPressImage={onPressImage}
+								onPressMedia={onPressMedia}
 								onPressVideoNote={onPressVideoNote}
 							/>
 						)}

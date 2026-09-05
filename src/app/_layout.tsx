@@ -56,6 +56,9 @@ const AppGate = () => {
 				<Stack.Screen name="call" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
 				<Stack.Screen name="camera-capture" options={{ presentation: "fullScreenModal" }} />
 				<Stack.Screen name="media-editor" options={{ presentation: "fullScreenModal" }} />
+				<Stack.Screen name="document-preview" options={{ presentation: "fullScreenModal" }} />
+				<Stack.Screen name="contact-info" options={{ presentation: "card" }} />
+				<Stack.Screen name="shared-media" options={{ presentation: "card" }} />
 				<Stack.Screen name="profile" options={{ presentation: "modal" }} />
 				<Stack.Screen name="qr-code" options={{ presentation: "modal" }} />
 				<Stack.Screen name="qr-scanner" options={{ presentation: "fullScreenModal" }} />
