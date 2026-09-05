@@ -59,6 +59,7 @@ const AppGate = () => {
 				<Stack.Screen name="document-preview" options={{ presentation: "fullScreenModal" }} />
 				<Stack.Screen name="contact-info" options={{ presentation: "card" }} />
 				<Stack.Screen name="shared-media" options={{ presentation: "card" }} />
+				<Stack.Screen name="starred-messages" options={{ presentation: "card" }} />
 				<Stack.Screen name="profile" options={{ presentation: "modal" }} />
 				<Stack.Screen name="qr-code" options={{ presentation: "modal" }} />
 				<Stack.Screen name="qr-scanner" options={{ presentation: "fullScreenModal" }} />

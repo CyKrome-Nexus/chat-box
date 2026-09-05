@@ -62,7 +62,15 @@ export const messagesSlice = createSlice({
         ) => {
             const { conversationId, messageId, status } = action.payload;
             const message = findMessage(state, conversationId, messageId);
-            if (message) message.status = status;
+            if (!message) return;
+
+            message.status = status;
+            if (status === "delivered" || status === "read") {
+                if (!message.deliveredAt) message.deliveredAt = Date.now();
+            }
+            if (status === "read" && !message.readAt) {
+                message.readAt = Date.now();
+            }
         },
         /** Appends an incoming message pushed by the realtime server. */
         receiveMessage: (
@@ -115,6 +123,51 @@ export const messagesSlice = createSlice({
                 (m) => m.id !== messageId
             );
         },
+        /** Long-press "Edit" — allowed only within the editing window (enforced by the caller). */
+        editMessage: (
+            state,
+            action: PayloadAction<{ conversationId: string; messageId: string; text: string }>
+        ) => {
+            const { conversationId, messageId, text } = action.payload;
+            const message = findMessage(state, conversationId, messageId);
+            if (!message) return;
+            message.text = text;
+            message.edited = true;
+            message.editedAt = Date.now();
+        },
+        /** Long-press "Star / Bookmark" — toggles membership in the Starred Messages list. */
+        toggleStarMessage: (
+            state,
+            action: PayloadAction<{ conversationId: string; messageId: string }>
+        ) => {
+            const message = findMessage(state, action.payload.conversationId, action.payload.messageId);
+            if (message) message.starred = !message.starred;
+        },
+        /** Quick-reaction pill — tapping the same emoji again clears it. */
+        setMessageReaction: (
+            state,
+            action: PayloadAction<{ conversationId: string; messageId: string; emoji: string }>
+        ) => {
+            const { conversationId, messageId, emoji } = action.payload;
+            const message = findMessage(state, conversationId, messageId);
+            if (!message) return;
+            message.reaction = message.reaction === emoji ? undefined : emoji;
+        },
+        /**
+         * "Delete for Everyone": leaves a tombstone in place (unlike
+         * `deleteMessage`, "Delete for Me", which removes the row outright).
+         */
+        deleteForEveryone: (
+            state,
+            action: PayloadAction<{ conversationId: string; messageId: string }>
+        ) => {
+            const message = findMessage(state, action.payload.conversationId, action.payload.messageId);
+            if (!message) return;
+            message.text = "";
+            message.attachment = undefined;
+            message.reaction = undefined;
+            message.deletedForEveryone = true;
+        },
         /** Settings > Chat > "Clear all chats". */
         clearAllMessages: (state) => {
             state.byConversation = {};
@@ -136,6 +189,10 @@ export const {
     updateAttachmentProgress,
     markAttachmentViewed,
     deleteMessage,
+    editMessage,
+    toggleStarMessage,
+    setMessageReaction,
+    deleteForEveryone,
     clearAllMessages,
     hydrateMessages,
 } = messagesSlice.actions;

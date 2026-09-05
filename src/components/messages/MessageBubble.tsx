@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -17,6 +17,7 @@ import { IAvatar } from "@/src/interfaces/list-interface";
 import Avatar from "../images/Avatar";
 import Colors from "@/src/constants/Colors";
 import AttachmentContent from "./AttachmentContent";
+import { IBubbleAnchor } from "./MessageActionsOverlay";
 
 const SWIPE_REPLY_THRESHOLD = 56;
 const SWIPE_REPLY_MAX = 84;
@@ -66,19 +67,40 @@ const MessageBubble = ({
 	onPressMedia,
 	onPressVideoNote,
 	onSwipeReply,
+	onPressReplyQuote,
+	onLongPressMessage,
+	highlighted,
 }: {
 	message: IMessage;
 	avatar?: IAvatar;
 	onPressMedia?: (messageId: string) => void;
 	onPressVideoNote?: (uri: string) => void;
 	onSwipeReply?: (message: IMessage) => void;
+	onPressReplyQuote?: (messageId: string) => void;
+	onLongPressMessage?: (message: IMessage, anchor: IBubbleAnchor) => void;
+	/** Brief flash after "jump to message" from a tapped reply quote. */
+	highlighted?: boolean;
 }) => {
 	const isSender = message.type === "sender";
 	const translateX = useSharedValue(0);
 	const hasTriggeredHaptic = useRef(false);
+	const bubbleRowRef = useRef<View>(null);
 
 	const triggerReply = () => onSwipeReply?.(message);
 	const triggerHaptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+	const triggerLongPress = () => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+		bubbleRowRef.current?.measureInWindow((x, y, width, height) => {
+			onLongPressMessage?.(message, { x, y, width, height });
+		});
+	};
+
+	const longPressGesture = Gesture.LongPress()
+		.minDuration(350)
+		.onStart(() => {
+			runOnJS(triggerLongPress)();
+		});
 
 	const swipeGesture = Gesture.Pan()
 		.activeOffsetX([10, 999])
@@ -117,9 +139,11 @@ const MessageBubble = ({
 		transform: [{ scale: 0.6 + 0.4 * Math.min(1, translateX.value / SWIPE_REPLY_THRESHOLD) }],
 	}));
 
+	const composedGesture = Gesture.Race(longPressGesture, swipeGesture);
+
 	return (
-		<GestureDetector gesture={swipeGesture}>
-			<View>
+		<GestureDetector gesture={composedGesture}>
+			<View ref={bubbleRowRef} collapsable={false}>
 				<Animated.View style={[styles.replyIcon, replyIconStyle]}>
 					<Ionicons name="arrow-undo" size={18} color={Colors.focused} />
 				</Animated.View>
@@ -135,40 +159,60 @@ const MessageBubble = ({
 						style={[
 							styles.bubble,
 							isSender ? styles.senderBubble : styles.receiverBubble,
+							highlighted && styles.bubbleHighlighted,
 						]}
 					>
-						{message.replyTo && (
-							<View style={[styles.replyQuote, isSender ? styles.replyQuoteSender : styles.replyQuoteReceiver]}>
-								<Text
-									style={isSender ? styles.replyQuoteTextSender : styles.replyQuoteTextReceiver}
-									numberOfLines={1}
-								>
-									{message.replyTo.text}
-								</Text>
-							</View>
-						)}
-						{message.attachment && (
-							<AttachmentContent
-								messageId={message.id}
-								conversationId={message.conversationId}
-								attachment={message.attachment}
-								isSender={isSender}
-								onPressMedia={onPressMedia}
-								onPressVideoNote={onPressVideoNote}
-							/>
-						)}
-						{!!message.text && (
-							<Text style={isSender ? styles.senderText : styles.receiverText}>
-								{message.text}
+						{message.deletedForEveryone ? (
+							<Text style={isSender ? styles.deletedTextSender : styles.deletedTextReceiver}>
+								This message was deleted
 							</Text>
+						) : (
+							<>
+								{message.replyTo && (
+									<TouchableOpacity
+										onPress={() => onPressReplyQuote?.(message.replyTo!.messageId)}
+										style={[styles.replyQuote, isSender ? styles.replyQuoteSender : styles.replyQuoteReceiver]}
+									>
+										<Text
+											style={isSender ? styles.replyQuoteTextSender : styles.replyQuoteTextReceiver}
+											numberOfLines={1}
+										>
+											{message.replyTo.text}
+										</Text>
+									</TouchableOpacity>
+								)}
+								{message.attachment && (
+									<AttachmentContent
+										messageId={message.id}
+										conversationId={message.conversationId}
+										attachment={message.attachment}
+										isSender={isSender}
+										onPressMedia={onPressMedia}
+										onPressVideoNote={onPressVideoNote}
+									/>
+								)}
+								{!!message.text && (
+									<Text style={isSender ? styles.senderText : styles.receiverText}>
+										{message.text}
+									</Text>
+								)}
+								<View style={styles.metaRow}>
+									{message.edited && (
+										<Text style={isSender ? styles.senderTime : styles.receiverTime}>edited</Text>
+									)}
+									<Text style={isSender ? styles.senderTime : styles.receiverTime}>
+										{formatTime(message.timestamp)}
+									</Text>
+									{isSender && <StatusTicks status={message.status} />}
+								</View>
+							</>
 						)}
-						<View style={styles.metaRow}>
-							<Text style={isSender ? styles.senderTime : styles.receiverTime}>
-								{formatTime(message.timestamp)}
-							</Text>
-							{isSender && <StatusTicks status={message.status} />}
-						</View>
 					</View>
+					{message.reaction && (
+						<View style={[styles.reactionBadge, isSender ? styles.reactionBadgeSender : styles.reactionBadgeReceiver]}>
+							<Text style={styles.reactionBadgeText}>{message.reaction}</Text>
+						</View>
+					)}
 				</Animated.View>
 			</View>
 		</GestureDetector>
@@ -258,5 +302,41 @@ const styles = StyleSheet.create({
 	receiverTime: {
 		fontSize: 11,
 		color: "#797C7B",
+	},
+	bubbleHighlighted: {
+		borderWidth: 2,
+		borderColor: Colors.focused,
+	},
+	deletedTextSender: {
+		color: "rgba(255,255,255,0.75)",
+		fontSize: 14,
+		fontStyle: "italic",
+	},
+	deletedTextReceiver: {
+		color: "#797C7B",
+		fontSize: 14,
+		fontStyle: "italic",
+	},
+	reactionBadge: {
+		position: "absolute",
+		bottom: -10,
+		backgroundColor: "#fff",
+		borderRadius: 10,
+		paddingHorizontal: 4,
+		paddingVertical: 1,
+		shadowColor: "#000",
+		shadowOpacity: 0.15,
+		shadowRadius: 3,
+		shadowOffset: { width: 0, height: 1 },
+		elevation: 2,
+	},
+	reactionBadgeSender: {
+		right: 6,
+	},
+	reactionBadgeReceiver: {
+		left: 34,
+	},
+	reactionBadgeText: {
+		fontSize: 12,
 	},
 });

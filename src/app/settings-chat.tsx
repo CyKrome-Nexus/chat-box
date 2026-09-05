@@ -1,5 +1,7 @@
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import SettingsScreenHeader from "@/src/components/settings/SettingsScreenHeader";
 import Colors from "@/src/constants/Colors";
@@ -27,6 +29,12 @@ const SettingsChat = () => {
 	return (
 		<ScrollView contentContainerStyle={styles.container}>
 			<SettingsScreenHeader title="Chat" />
+
+			<TouchableOpacity style={styles.starredRow} onPress={() => router.push("/starred-messages")}>
+				<Ionicons name="star" size={20} color={Colors.focused} />
+				<Text style={styles.starredRowLabel}>Starred Messages</Text>
+				<Ionicons name="chevron-forward" size={18} color="#797C7B" />
+			</TouchableOpacity>
 
 			<Text style={styles.sectionTitle}>Theme</Text>
 			<View style={styles.themeRow}>
@@ -74,6 +82,19 @@ const styles = StyleSheet.create({
 		backgroundColor: "#fff",
 		paddingHorizontal: 20,
 		paddingBottom: 40,
+	},
+	starredRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 12,
+		paddingVertical: 12,
+		borderBottomWidth: 1,
+		borderBottomColor: "#f2f2f2",
+	},
+	starredRowLabel: {
+		flex: 1,
+		fontSize: 15,
+		color: "#000E08",
 	},
 	sectionTitle: {
 		fontSize: 13,

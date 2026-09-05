@@ -32,12 +32,31 @@ export interface IMessage {
     timestamp: number;
     status?: TMessageStatus;
     attachment?: IAttachment;
+    /** Set once `status` has reached "delivered" (or later) — see message-actions.md. */
+    deliveredAt?: number;
+    /** Set once `status` has reached "read". */
+    readAt?: number;
+    /** True once the sender has edited this message's text (see message-actions.md). */
+    edited?: boolean;
+    editedAt?: number;
+    /** Starred/bookmarked via the message actions menu. */
+    starred?: boolean;
+    /** A single quick-reaction emoji (see message-actions.md — one reactor, this being a single-user app). */
+    reaction?: string;
     /**
-     * A lightweight quote of the message this one is replying to (swipe-to-
-     * reply — see docs/architecture/micro-animations.md). Full reply
-     * threading/jump-to-message is out of scope here.
+     * "Delete for Everyone": the message stays in the list as a tombstone
+     * (text/attachment cleared) rather than being removed, unlike
+     * `deleteMessage` ("Delete for Me").
+     */
+    deletedForEveryone?: boolean;
+    /**
+     * A quote of the message this one is replying to (swipe-to-reply, or the
+     * long-press "Reply" action — see docs/architecture/micro-animations.md
+     * and message-actions.md). `messageId` lets tapping the quote scroll
+     * back to the original.
      */
     replyTo?: {
+        messageId: string;
         text: string;
         isSender: boolean;
     };
