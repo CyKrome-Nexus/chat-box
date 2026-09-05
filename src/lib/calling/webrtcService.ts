@@ -92,6 +92,21 @@ export class CallPeerConnection {
         this.localStream?.getVideoTracks().forEach((track) => (track.enabled = enabled));
     }
 
+    /** Flips between front/rear camera on the active local video track. */
+    switchCamera() {
+        const videoTrack = this.localStream?.getVideoTracks()[0] as any;
+        videoTrack?._switchCamera?.();
+    }
+
+    getLocalStream(): MediaStream | null {
+        return this.localStream;
+    }
+
+    /** Exposes the underlying connection read-only, for stats-based adaptive bitrate. */
+    getRawConnection(): RNRTCPeerConnection {
+        return this.pc;
+    }
+
     close() {
         this.localStream?.getTracks().forEach((track) => track.stop());
         this.pc.close();

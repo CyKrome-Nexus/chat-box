@@ -1,20 +1,32 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { RTCView, MediaStream } from "react-native-webrtc";
 
 import Avatar from "../images/Avatar";
 import CallControlButton from "./CallControlButton";
 import CallTimer from "./CallTimer";
+import DraggablePipView from "./DraggablePipView";
 import { IActiveCall } from "@/src/redux/features/callSlice";
 import { useCallAudioRouting, setMicrophoneMuted, setSpeakerphoneEnabled } from "@/src/hooks/useCallAudioRouting";
+import { useLocalCameraPreview } from "@/src/hooks/useLocalCameraPreview";
 
-const ActiveCallView = ({ call, onHangUp }: { call: IActiveCall; onHangUp: () => void }) => {
+const ActiveCallView = ({
+	call,
+	onHangUp,
+	remoteStream,
+}: {
+	call: IActiveCall;
+	onHangUp: () => void;
+	remoteStream?: MediaStream | null;
+}) => {
 	const [muted, setMuted] = useState(false);
 	const [speakerOn, setSpeakerOn] = useState(call.type === "video");
-	const [frontCamera, setFrontCamera] = useState(true);
+	const [videoOn, setVideoOn] = useState(true);
 
 	const isVideo = call.type === "video";
 
 	useCallAudioRouting(true, isVideo);
+	const localCamera = useLocalCameraPreview(isVideo);
 
 	useEffect(() => {
 		setSpeakerphoneEnabled(speakerOn);
@@ -27,16 +39,30 @@ const ActiveCallView = ({ call, onHangUp }: { call: IActiveCall; onHangUp: () =>
 		});
 	};
 
+	const toggleVideo = () => {
+		setVideoOn((prev) => {
+			localCamera.setVideoEnabled(!prev);
+			return !prev;
+		});
+	};
+
 	return (
 		<View style={[styles.container, isVideo && styles.videoContainer]}>
 			{isVideo && (
-				<View style={styles.selfViewPlaceholder}>
-					<Text style={styles.selfViewLabel}>You</Text>
-				</View>
+				<>
+					{remoteStream ? (
+						<RTCView streamURL={remoteStream.toURL()} style={StyleSheet.absoluteFill} objectFit="cover" />
+					) : (
+						<View style={[StyleSheet.absoluteFill, styles.remotePlaceholder]} />
+					)}
+					{videoOn && (
+						<DraggablePipView streamUrl={localCamera.stream?.toURL()} />
+					)}
+				</>
 			)}
 
 			<View style={styles.info}>
-				<Avatar data={call.contactAvatar} size={isVideo ? 100 : 140} />
+				{(!isVideo || !remoteStream) && <Avatar data={call.contactAvatar} size={isVideo ? 100 : 140} />}
 				<Text style={styles.name}>{call.contactName}</Text>
 				{call.connectedAt && <CallTimer connectedAt={call.connectedAt} />}
 			</View>
@@ -55,11 +81,15 @@ const ActiveCallView = ({ call, onHangUp }: { call: IActiveCall; onHangUp: () =>
 					onPress={() => setSpeakerOn((prev) => !prev)}
 				/>
 				{isVideo && (
-					<CallControlButton
-						icon="camera-reverse"
-						label="Flip"
-						onPress={() => setFrontCamera((prev) => !prev)}
-					/>
+					<>
+						<CallControlButton
+							icon={videoOn ? "videocam" : "videocam-off"}
+							label="Video"
+							active={!videoOn}
+							onPress={toggleVideo}
+						/>
+						<CallControlButton icon="camera-reverse" label="Flip" onPress={localCamera.switchCamera} />
+					</>
 				)}
 				<CallControlButton icon="call" label="End" danger rotate135 onPress={onHangUp} />
 			</View>
@@ -80,20 +110,8 @@ const styles = StyleSheet.create({
 	videoContainer: {
 		backgroundColor: "#000",
 	},
-	selfViewPlaceholder: {
-		position: "absolute",
-		top: 60,
-		right: 20,
-		width: 90,
-		height: 130,
-		borderRadius: 14,
-		backgroundColor: "rgba(255,255,255,0.12)",
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	selfViewLabel: {
-		color: "rgba(255,255,255,0.7)",
-		fontSize: 12,
+	remotePlaceholder: {
+		backgroundColor: "#111",
 	},
 	info: {
 		alignItems: "center",
@@ -107,6 +125,6 @@ const styles = StyleSheet.create({
 	},
 	controlsRow: {
 		flexDirection: "row",
-		gap: 20,
+		gap: 16,
 	},
 });

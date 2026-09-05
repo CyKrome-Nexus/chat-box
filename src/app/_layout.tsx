@@ -14,6 +14,7 @@ import { useOfflineDbSync } from "../hooks/useOfflineDbSync";
 import { useNetworkSync } from "../hooks/useNetworkSync";
 import { useCallKeepIntegration } from "../hooks/useCallKeepIntegration";
 import { useIncomingCallNotification } from "../hooks/useIncomingCallNotification";
+import FloatingCallBubble from "../components/calling/FloatingCallBubble";
 import { Stack } from "expo-router";
 
 SplashScreen.preventAutoHideAsync();
@@ -62,6 +63,7 @@ const AppGate = () => {
 				<Stack.Screen name="settings-help" />
 				<Stack.Screen name="settings-storage" />
 			</Stack>
+			<FloatingCallBubble />
 			</KeyboardProvider>
 		</GestureHandlerRootView>
 	);
