@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 
 import EmojiPicker from "@/src/components/messages/EmojiPicker";
-import { addStory } from "@/src/redux/features/storiesSlice";
+import { addStory, setStoryKeyDistribution } from "@/src/redux/features/storiesSlice";
 import { simulateStoryViews } from "@/src/lib/stories/simulateStoryViews";
+import { resolveStoryAudience } from "@/src/lib/stories/storyAudience";
+import { distributeStoryKey } from "@/src/lib/stories/storyEncryption";
 import { IUser } from "@/src/interfaces/user-interface";
+import { IChatRibbon } from "@/src/interfaces/list-interface";
 
 const GRADIENTS: [string, string][] = [
 	["#24786D", "#11BC6B"],
@@ -24,11 +27,21 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** Text status creator — background gradient picker + typed text + emoji insertion. */
 const StoryTextEditorScreen = () => {
 	const dispatch = useDispatch();
+	const params = useLocalSearchParams<{ audienceIds?: string }>();
 	const user = useSelector((state: { user: IUser | null }) => state.user);
 	const statusPrivacy = useSelector((state: any) => state.settings.privacy.statusPrivacy);
+	const chats = useSelector((state: any) => state.chats.chats as IChatRibbon[]);
 	const [text, setText] = useState("");
 	const [gradientIndex, setGradientIndex] = useState(0);
 	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+	const audienceIds: string[] = (() => {
+		try {
+			return JSON.parse(params.audienceIds || "[]");
+		} catch {
+			return [];
+		}
+	})();
 
 	const handlePost = () => {
 		if (!text.trim()) return;
@@ -47,9 +60,16 @@ const StoryTextEditorScreen = () => {
 				expiresAt: now + DAY_MS,
 				views: [],
 				privacy: statusPrivacy,
+				audienceIds,
 			})
 		);
 		simulateStoryViews(dispatch, id);
+
+		const audienceConversationIds = resolveStoryAudience(chats, statusPrivacy, audienceIds);
+		distributeStoryKey(id, audienceConversationIds).then((keyDistribution) => {
+			dispatch(setStoryKeyDistribution({ storyId: id, keyDistribution }));
+		});
+
 		router.back();
 	};
 

@@ -67,13 +67,32 @@ export const storiesSlice = createSlice({
         deleteStory: (state, action: PayloadAction<string>) => {
             state.stories = state.stories.filter((s) => s.id !== action.payload);
         },
-        /** Auto-expiry sweep — see useStoriesExpirySweep.ts. */
+        /** "Save to Personal Archive" — exempts the story from the expiry sweep below. */
+        toggleArchiveStory: (state, action: PayloadAction<string>) => {
+            const story = state.stories.find((s) => s.id === action.payload);
+            if (story) story.archivedByAuthor = !story.archivedByAuthor;
+        },
+        setStoryKeyDistribution: (
+            state,
+            action: PayloadAction<{ storyId: string; keyDistribution: Record<string, string> }>
+        ) => {
+            const story = state.stories.find((s) => s.id === action.payload.storyId);
+            if (story) story.keyDistribution = action.payload.keyDistribution;
+        },
+        /** Auto-expiry sweep — see useStoriesExpirySweep.ts. Archived stories are kept regardless of age. */
         purgeExpiredStories: (state) => {
             const now = Date.now();
-            state.stories = state.stories.filter((s) => s.expiresAt > now);
+            state.stories = state.stories.filter((s) => s.archivedByAuthor || s.expiresAt > now);
         },
     },
 });
 
-export const { addStory, viewStory, deleteStory, purgeExpiredStories } = storiesSlice.actions;
+export const {
+    addStory,
+    viewStory,
+    deleteStory,
+    toggleArchiveStory,
+    setStoryKeyDistribution,
+    purgeExpiredStories,
+} = storiesSlice.actions;
 export default storiesSlice.reducer;
