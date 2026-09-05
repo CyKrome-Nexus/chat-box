@@ -6,14 +6,43 @@ import {
 	View,
 } from "react-native";
 import { router } from "expo-router";
+import { useDispatch } from "react-redux";
 
 import BBar from "@/src/components/buttons/BBar";
 import { apple, facebook, google } from "@/src/constants/svgs/logos";
 import CarmeText from "@/src/components/Themed/CarmeText";
 import OR from "@/src/components/decorators/OR";
 import BContainer from "@/src/components/buttons/BContainer";
+import { useSocialAuth } from "@/src/hooks/useSocialAuth";
+import { ISocialProfile } from "@/src/lib/auth/socialAuth";
+import { upsertSocialUser } from "@/src/lib/auth/authService";
+import { updateUser } from "@/src/redux/features/userSlice";
+
+const SOCIAL_PROVIDERS: ISocialProfile["provider"][] = ["facebook", "google", "apple"];
 
 export default function Page() {
+	const dispatch = useDispatch();
+
+	const handleSocialSuccess = async (profile: ISocialProfile) => {
+		const stored = await upsertSocialUser(profile);
+		dispatch(
+			updateUser({
+				name: stored.name,
+				username: stored.identifier,
+				avatar: stored.avatarUrl ? { url: stored.avatarUrl } : undefined,
+			})
+		);
+	};
+
+	const { signInWithGoogle, signInWithFacebook, signInWithApple } = useSocialAuth(handleSocialSuccess);
+
+	const handleSocialPress = (index: number) => {
+		const provider = SOCIAL_PROVIDERS[index];
+		if (provider === "facebook") signInWithFacebook();
+		if (provider === "google") signInWithGoogle();
+		if (provider === "apple") signInWithApple();
+	};
+
 	return (
 		<ImageBackground
 			source={require("@/assets/images/BackgroundEllipse.png")}
@@ -23,7 +52,7 @@ export default function Page() {
 		>
 			<View style={styles.upperArea} />
 			<View style={styles.main}>
-				<BContainer svgs={[facebook, google, apple]} />
+				<BContainer svgs={[facebook, google, apple]} onPressAt={handleSocialPress} />
 
 				<OR />
 

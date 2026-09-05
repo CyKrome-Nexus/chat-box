@@ -15,7 +15,8 @@
 		},
 		"ios": {
 			"supportsTablet": true,
-			"bundleIdentifier": "com.anonymous.exporouterlearn"
+			"bundleIdentifier": "com.anonymous.exporouterlearn",
+			"usesAppleSignIn": true
 		},
 		"android": {
 			"adaptiveIcon": {
@@ -50,7 +51,9 @@
 				{
 					"microphonePermission": "Chatbox needs access to your microphone to record voice messages."
 				}
-			]
+			],
+			"expo-web-browser",
+			"expo-apple-authentication"
 		]
 	}
 }

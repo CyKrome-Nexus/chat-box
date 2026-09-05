@@ -19,13 +19,37 @@ import TextInput from "@/src/components/inputs/TextInput";
 import CountryCodePicker, { COUNTRY_CODES, ICountryCode } from "@/src/components/inputs/CountryCodePicker";
 import Colors from "@/src/constants/Colors";
 import { updateUser } from "@/src/redux/features/userSlice";
-import { AuthError, login, signUp } from "@/src/lib/auth/authService";
+import { AuthError, login, signUp, upsertSocialUser } from "@/src/lib/auth/authService";
 import { isEmailOrPhone, isPhone, isStrongPassword, passwordsMatch } from "@/src/lib/auth/validators";
+import { useSocialAuth } from "@/src/hooks/useSocialAuth";
+import { ISocialProfile } from "@/src/lib/auth/socialAuth";
 import { IUser } from "../../interfaces/user-interface";
+
+const SOCIAL_PROVIDERS: ISocialProfile["provider"][] = ["facebook", "google", "apple"];
 
 const Authentication = () => {
 	const dispatch = useDispatch();
 	const user = useSelector((state: { user: IUser }) => state.user);
+
+	const handleSocialSuccess = async (profile: ISocialProfile) => {
+		const stored = await upsertSocialUser(profile);
+		dispatch(
+			updateUser({
+				name: stored.name,
+				username: stored.identifier,
+				avatar: stored.avatarUrl ? { url: stored.avatarUrl } : undefined,
+			})
+		);
+	};
+
+	const { signInWithGoogle, signInWithFacebook, signInWithApple } = useSocialAuth(handleSocialSuccess);
+
+	const handleSocialPress = (index: number) => {
+		const provider = SOCIAL_PROVIDERS[index];
+		if (provider === "facebook") signInWithFacebook();
+		if (provider === "google") signInWithGoogle();
+		if (provider === "apple") signInWithApple();
+	};
 
 	useEffect(() => {
 		if (user?.username)
@@ -145,6 +169,7 @@ const Authentication = () => {
 								<BContainer
 									svgs={[facebook, google, apple.dark ?? apple.default]}
 									borderColor={"black"}
+									onPressAt={handleSocialPress}
 								/>
 								<OR barColor="#E6E8E7" />
 								<View style={styles.inputsWrapper}>
