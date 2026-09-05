@@ -53,6 +53,7 @@ import { useVideoNoteRecorder } from "@/src/hooks/useVideoNoteRecorder";
 import { audioPlaybackManager } from "@/src/lib/audio/playbackManager";
 import { formatDuration } from "@/src/lib/audio/format";
 import { mediaComposerBridge } from "@/src/lib/media/mediaComposerBridge";
+import { computeExpiresAt } from "@/src/lib/security/disappearingMessages";
 import { IAttachment, IMessage } from "@/src/interfaces/message-interface";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
 
@@ -103,13 +104,17 @@ const Chat = () => {
 	const messages = useSelector(
 		(state: any) => state.messages.byConversation[conversationId] as IMessage[] | undefined
 	) || [];
-	const { connectionStatus, typingUsers, sendMessage, notifyTyping, editMessage: editMessageRealtime } = useChatRealtime(
+	const { connectionStatus, typingUsers, sendMessage, notifyTyping, markRead, editMessage: editMessageRealtime } = useChatRealtime(
 		conversationId,
 		currentUserId
 	);
+	const readReceiptsEnabled = useSelector((state: any) => state.settings.privacy.readReceipts as boolean);
 
 	const chatDraft = useSelector(
 		(state: any) => (state.chats.chats as IChatRibbon[]).find((c) => c.id === conversationId)?.draft
+	);
+	const disappearingTimer = useSelector(
+		(state: any) => (state.chats.chats as IChatRibbon[]).find((c) => c.id === conversationId)?.disappearingTimer
 	);
 	// Lazy initializer: only reads the persisted draft once, on mount — later
 	// re-renders (e.g. from other chatsSlice updates) shouldn't stomp on
@@ -223,6 +228,19 @@ const Chat = () => {
 		dispatch(markChatRead(conversationId));
 	}, [conversationId, dispatch]);
 
+	// Sends a read receipt for the newest received message — gated behind
+	// Settings > Account > Read Receipts, per the ticket's "toggle blue double
+	// checkmarks on/off" requirement (see security-privacy.md).
+	const lastMarkedReadIdRef = useRef<string | undefined>(undefined);
+	useEffect(() => {
+		if (!readReceiptsEnabled) return;
+		const lastReceived = [...messages].filter((m) => m.type === "receiver").sort((a, b) => b.timestamp - a.timestamp)[0];
+		if (lastReceived && lastReceived.id !== lastMarkedReadIdRef.current) {
+			lastMarkedReadIdRef.current = lastReceived.id;
+			markRead(lastReceived.id);
+		}
+	}, [messages, readReceiptsEnabled, markRead]);
+
 	// Auto-saves an in-progress, unsent draft to the chat record on the way
 	// out, so it survives navigating away and shows as "Draft: ..." in the
 	// inbox (see docs/architecture/chat-organization.md).
@@ -287,6 +305,7 @@ const Chat = () => {
 			text: caption,
 			type: "sender",
 			timestamp: Date.now(),
+			expiresAt: computeExpiresAt(disappearingTimer),
 		};
 
 		dispatch(composeMessage({ conversationId, message: { ...message, attachment }, queued: false }));

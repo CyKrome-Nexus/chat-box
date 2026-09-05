@@ -17,6 +17,7 @@ import {
     updateMessageStatus,
 } from "@/src/redux/features/messagesSlice";
 import { unarchiveChat } from "@/src/redux/features/chatsSlice";
+import { computeExpiresAt } from "@/src/lib/security/disappearingMessages";
 
 /**
  * The realtime server URL. Configure via an EXPO_PUBLIC_ env var so it can
@@ -83,6 +84,9 @@ export const useRealtimeConnection = (currentUserId?: string) => {
         };
 
         const onMessageReceive = (payload: IMessageReceiveEvent) => {
+            const state: any = store.getState();
+            const chat = state.chats.chats.find((c: any) => c.id === payload.conversationId);
+
             dispatch(
                 receiveMessage({
                     conversationId: payload.conversationId,
@@ -92,12 +96,11 @@ export const useRealtimeConnection = (currentUserId?: string) => {
                         text: payload.text,
                         type: "receiver",
                         timestamp: payload.timestamp,
+                        expiresAt: computeExpiresAt(chat?.disappearingTimer, payload.timestamp),
                     },
                 })
             );
 
-            const state: any = store.getState();
-            const chat = state.chats.chats.find((c: any) => c.id === payload.conversationId);
             if (chat?.archived && state.settings.chat.unarchiveOnNewMessage) {
                 dispatch(unarchiveChat(payload.conversationId));
             }

@@ -1,9 +1,15 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 
 import Avatar from "@/src/components/images/Avatar";
 import Colors from "@/src/constants/Colors";
+import { IChatRibbon } from "@/src/interfaces/list-interface";
+import { setDisappearingTimer } from "@/src/redux/features/chatsSlice";
+import { DISAPPEARING_TIMER_LABELS } from "@/src/lib/security/disappearingMessages";
+
+const DISAPPEARING_OPTIONS: IChatRibbon["disappearingTimer"][] = ["off", "24h", "7d", "90d"];
 
 /**
  * Minimal per-contact info screen — its main purpose for this ticket is
@@ -11,6 +17,7 @@ import Colors from "@/src/constants/Colors";
  * media-gallery.md). Group Info is out of scope until groups (#33) exist.
  */
 const ContactInfoScreen = () => {
+	const dispatch = useDispatch();
 	const params = useLocalSearchParams<{ user: string }>();
 	const user = (() => {
 		if (!params.user) return null;
@@ -22,6 +29,21 @@ const ContactInfoScreen = () => {
 	})();
 
 	const conversationId = user?.id || user?.name || "unknown";
+	const disappearingTimer = useSelector(
+		(state: any) =>
+			(state.chats.chats as IChatRibbon[]).find((c) => c.id === conversationId)?.disappearingTimer || "off"
+	);
+
+	const handleDisappearingMessages = () => {
+		Alert.alert(
+			"Disappearing Messages",
+			"New messages in this chat will disappear after:",
+			DISAPPEARING_OPTIONS.map((timer) => ({
+				text: DISAPPEARING_TIMER_LABELS[timer!],
+				onPress: () => dispatch(setDisappearingTimer({ chatId: conversationId, timer })),
+			})).concat([{ text: "Cancel", onPress: () => {}, style: "cancel" } as any])
+		);
+	};
 
 	return (
 		<View style={styles.container}>
@@ -50,6 +72,13 @@ const ContactInfoScreen = () => {
 			>
 				<Ionicons name="images-outline" size={22} color={Colors.focused} />
 				<Text style={styles.rowLabel}>Shared Media</Text>
+				<Ionicons name="chevron-forward" size={18} color="#797C7B" />
+			</TouchableOpacity>
+
+			<TouchableOpacity style={styles.row} onPress={handleDisappearingMessages}>
+				<Ionicons name="timer-outline" size={22} color={Colors.focused} />
+				<Text style={styles.rowLabel}>Disappearing Messages</Text>
+				<Text style={styles.rowValue}>{DISAPPEARING_TIMER_LABELS[disappearingTimer]}</Text>
 				<Ionicons name="chevron-forward" size={18} color="#797C7B" />
 			</TouchableOpacity>
 		</View>
@@ -104,5 +133,10 @@ const styles = StyleSheet.create({
 		flex: 1,
 		fontSize: 15,
 		color: "#000E08",
+	},
+	rowValue: {
+		fontSize: 13,
+		color: "#797C7B",
+		marginRight: 4,
 	},
 });

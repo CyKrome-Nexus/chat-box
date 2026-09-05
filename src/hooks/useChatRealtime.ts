@@ -1,10 +1,11 @@
 import { useCallback, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 
 import { realtimeSocketClient } from "@/src/lib/realtime/socketClient";
 import { TConnectionStatus } from "@/src/lib/realtime/types";
 import { composeMessage, editMessage as editMessageAction } from "@/src/redux/features/messagesSlice";
 import { IMessage } from "@/src/interfaces/message-interface";
+import { computeExpiresAt } from "@/src/lib/security/disappearingMessages";
 
 const TYPING_TIMEOUT_MS = 3000;
 
@@ -16,6 +17,7 @@ const TYPING_TIMEOUT_MS = 3000;
  */
 export const useChatRealtime = (conversationId: string, currentUserId: string) => {
     const dispatch = useDispatch();
+    const store = useStore();
     const isTypingRef = useRef(false);
     const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -44,6 +46,9 @@ export const useChatRealtime = (conversationId: string, currentUserId: string) =
             const trimmed = text.trim();
             if (!trimmed) return undefined;
 
+            const state: any = store.getState();
+            const chat = state.chats.chats.find((c: any) => c.id === conversationId);
+
             const message: IMessage = {
                 id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                 conversationId,
@@ -51,6 +56,7 @@ export const useChatRealtime = (conversationId: string, currentUserId: string) =
                 type: "sender",
                 timestamp: Date.now(),
                 replyTo,
+                expiresAt: computeExpiresAt(chat?.disappearingTimer),
             };
 
             const emitted = realtimeSocketClient.emit("message:send", {
@@ -72,7 +78,7 @@ export const useChatRealtime = (conversationId: string, currentUserId: string) =
             stopTyping();
             return message.id;
         },
-        [conversationId, currentUserId, stopTyping]
+        [conversationId, currentUserId, stopTyping, store]
     );
 
     const notifyTyping = useCallback(() => {
