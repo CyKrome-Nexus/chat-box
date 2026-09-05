@@ -18,6 +18,7 @@ import Avatar from "../images/Avatar";
 import Colors from "@/src/constants/Colors";
 import AttachmentContent from "./AttachmentContent";
 import { IBubbleAnchor } from "./MessageActionsOverlay";
+import HighlightedText from "@/src/components/search/HighlightedText";
 
 const SWIPE_REPLY_THRESHOLD = 56;
 const SWIPE_REPLY_MAX = 84;
@@ -70,6 +71,7 @@ const MessageBubble = ({
 	onPressReplyQuote,
 	onLongPressMessage,
 	highlighted,
+	searchQuery,
 }: {
 	message: IMessage;
 	avatar?: IAvatar;
@@ -80,6 +82,8 @@ const MessageBubble = ({
 	onLongPressMessage?: (message: IMessage, anchor: IBubbleAnchor) => void;
 	/** Brief flash after "jump to message" from a tapped reply quote. */
 	highlighted?: boolean;
+	/** In-chat search: highlights matching substrings in the message text. */
+	searchQuery?: string;
 }) => {
 	const isSender = message.type === "sender";
 	const translateX = useSharedValue(0);
@@ -191,11 +195,18 @@ const MessageBubble = ({
 										onPressVideoNote={onPressVideoNote}
 									/>
 								)}
-								{!!message.text && (
+								{!!message.text && (searchQuery ? (
+									<HighlightedText
+										text={message.text}
+										query={searchQuery}
+										style={isSender ? styles.senderText : styles.receiverText}
+										highlightStyle={styles.searchHighlight}
+									/>
+								) : (
 									<Text style={isSender ? styles.senderText : styles.receiverText}>
 										{message.text}
 									</Text>
-								)}
+								))}
 								<View style={styles.metaRow}>
 									{message.edited && (
 										<Text style={isSender ? styles.senderTime : styles.receiverTime}>edited</Text>
@@ -338,5 +349,9 @@ const styles = StyleSheet.create({
 	},
 	reactionBadgeText: {
 		fontSize: 12,
+	},
+	searchHighlight: {
+		backgroundColor: "#FFF3B0",
+		color: "#000E08",
 	},
 });

@@ -1,7 +1,8 @@
 import type { Middleware } from "@reduxjs/toolkit";
 
 import { deleteConversation, upsertConversation } from "@/src/lib/db/conversationsRepo";
-import { clearAllMessagesFromDb, upsertMessage } from "@/src/lib/db/messagesRepo";
+import { clearAllMessagesFromDb, deleteMessageFromDb, upsertMessage } from "@/src/lib/db/messagesRepo";
+import { indexMessage, removeMessageFromIndex } from "@/src/lib/db/searchRepo";
 import { upsertContact } from "@/src/lib/db/contactsRepo";
 import { clearCallLogsFromDb, insertCallLog } from "@/src/lib/db/callLogsRepo";
 import { dequeueSync, enqueueSync } from "@/src/lib/db/syncQueueRepo";
@@ -40,12 +41,14 @@ export const persistenceMiddleware: Middleware = (store) => (next) => (action: a
         case "messages/composeMessage": {
             const { conversationId, message, queued } = action.payload;
             upsertMessage(conversationId, message);
+            indexMessage(message.id, conversationId, message.text);
             if (queued) enqueueSync(conversationId, message.id, message);
             break;
         }
         case "messages/receiveMessage": {
             const { conversationId, message } = action.payload;
             upsertMessage(conversationId, message);
+            indexMessage(message.id, conversationId, message.text);
             // An incoming message bumps the chat's unread count (and may
             // unarchive it) via chatsSlice's extraReducers/onMessageReceive —
             // mirror that into the conversations table too.
@@ -69,6 +72,30 @@ export const persistenceMiddleware: Middleware = (store) => (next) => (action: a
                 (m: any) => m.id === messageId
             );
             if (message) upsertMessage(conversationId, message);
+            break;
+        }
+        case "messages/editMessage": {
+            const { conversationId, messageId, text } = action.payload;
+            const message = state.messages.byConversation[conversationId]?.find(
+                (m: any) => m.id === messageId
+            );
+            if (message) upsertMessage(conversationId, message);
+            indexMessage(messageId, conversationId, text);
+            break;
+        }
+        case "messages/deleteMessage": {
+            const { messageId } = action.payload;
+            deleteMessageFromDb(messageId);
+            removeMessageFromIndex(messageId);
+            break;
+        }
+        case "messages/deleteForEveryone": {
+            const { conversationId, messageId } = action.payload;
+            const message = state.messages.byConversation[conversationId]?.find(
+                (m: any) => m.id === messageId
+            );
+            if (message) upsertMessage(conversationId, message);
+            removeMessageFromIndex(messageId);
             break;
         }
         case "messages/clearAllMessages": {

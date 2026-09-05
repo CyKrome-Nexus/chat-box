@@ -130,6 +130,9 @@ const Chat = () => {
 	const [infoMessage, setInfoMessage] = useState<IMessage | null>(null);
 	const [forwardTarget, setForwardTarget] = useState<IMessage | null>(null);
 	const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>();
+	const isSearching = params.search === "1";
+	const [searchQuery, setSearchQuery] = useState("");
+	const [searchMatchIndex, setSearchMatchIndex] = useState(0);
 	const flatListRef = useRef<FlatList>(null);
 	const { pickAttachment } = useAttachmentPicker();
 	const voiceRecorder = useVoiceRecorder();
@@ -578,7 +581,7 @@ const Chat = () => {
 		Alert.alert("Forwarded", `Sent to ${target.name}.`);
 	};
 
-	const handlePressReplyQuote = (messageId: string) => {
+	const jumpToMessage = (messageId: string) => {
 		const index = displayData.findIndex((item) => item.kind === "message" && item.message.id === messageId);
 		if (index === -1) {
 			Alert.alert("Message not found", "The original message is no longer available.");
@@ -588,6 +591,50 @@ const Chat = () => {
 		setHighlightedMessageId(messageId);
 		setTimeout(() => setHighlightedMessageId(undefined), 1200);
 	};
+
+	const handlePressReplyQuote = (messageId: string) => jumpToMessage(messageId);
+
+	// In-chat search — a simple in-memory scan over the already-loaded
+	// conversation (global search across every conversation uses the SQLite
+	// FTS index instead — see docs/architecture/search.md).
+	const searchMatches = useMemo(() => {
+		if (!isSearching || !searchQuery.trim()) return [];
+		const q = searchQuery.trim().toLowerCase();
+		return [...messages]
+			.filter((m) => m.text?.toLowerCase().includes(q))
+			.sort((a, b) => a.timestamp - b.timestamp);
+	}, [isSearching, searchQuery, messages]);
+
+	useEffect(() => {
+		setSearchMatchIndex(0);
+	}, [searchQuery]);
+
+	useEffect(() => {
+		if (searchMatches.length && isSearching) jumpToMessage(searchMatches[searchMatchIndex]?.id);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [searchMatchIndex, searchMatches]);
+
+	const handleCloseSearch = () => {
+		router.setParams({ search: undefined });
+		setSearchQuery("");
+		setSearchMatchIndex(0);
+	};
+
+	const handleStepSearch = (direction: 1 | -1) => {
+		if (!searchMatches.length) return;
+		setSearchMatchIndex((prev) => (prev + direction + searchMatches.length) % searchMatches.length);
+	};
+
+	// Deep link from global search results (/search) — jump straight to the
+	// message that matched, once the conversation's messages are loaded.
+	const jumpToMessageId = params.jumpToMessageId as string | undefined;
+	const hasJumpedRef = useRef(false);
+	useEffect(() => {
+		if (!jumpToMessageId || hasJumpedRef.current || messages.length === 0) return;
+		hasJumpedRef.current = true;
+		requestAnimationFrame(() => jumpToMessage(jumpToMessageId));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [jumpToMessageId, messages.length]);
 
 	const renderItem = ({ item }: { item: TDisplayItem }) => (
 		<View style={styles.invertedItem}>
@@ -603,6 +650,7 @@ const Chat = () => {
 					onPressReplyQuote={handlePressReplyQuote}
 					onLongPressMessage={handleLongPressMessage}
 					highlighted={highlightedMessageId === item.message.id}
+					searchQuery={isSearching ? searchQuery : undefined}
 				/>
 			)}
 		</View>
@@ -621,6 +669,32 @@ const Chat = () => {
 				{isTyping && (
 					<View style={styles.typingBanner}>
 						<Text style={styles.typingBannerText}>{user?.name || "Contact"} is typing…</Text>
+					</View>
+				)}
+
+				{isSearching && (
+					<View style={styles.searchBar}>
+						<Ionicons name="search" size={16} color="#797C7B" />
+						<TextInput
+							style={styles.searchInput}
+							placeholder="Search in this chat"
+							placeholderTextColor="#797C7B"
+							value={searchQuery}
+							onChangeText={setSearchQuery}
+							autoFocus
+						/>
+						<Text style={styles.searchCounter}>
+							{searchMatches.length ? `${searchMatchIndex + 1} of ${searchMatches.length}` : "0 of 0"}
+						</Text>
+						<TouchableOpacity onPress={() => handleStepSearch(-1)} disabled={!searchMatches.length}>
+							<Ionicons name="chevron-up" size={20} color={searchMatches.length ? "#000E08" : "#ccc"} />
+						</TouchableOpacity>
+						<TouchableOpacity onPress={() => handleStepSearch(1)} disabled={!searchMatches.length}>
+							<Ionicons name="chevron-down" size={20} color={searchMatches.length ? "#000E08" : "#ccc"} />
+						</TouchableOpacity>
+						<TouchableOpacity onPress={handleCloseSearch}>
+							<Ionicons name="close" size={20} color="#797C7B" />
+						</TouchableOpacity>
 					</View>
 				)}
 
@@ -993,6 +1067,25 @@ const styles = StyleSheet.create({
 		color: "#fff",
 		fontSize: 12,
 		textAlign: "center",
+	},
+	searchBar: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		backgroundColor: "#F3F6F6",
+		borderBottomWidth: 1,
+		borderBottomColor: "#eee",
+	},
+	searchInput: {
+		flex: 1,
+		fontSize: 14,
+		color: "#000E08",
+	},
+	searchCounter: {
+		fontSize: 12,
+		color: "#797C7B",
 	},
 	typingBanner: {
 		paddingVertical: 4,
