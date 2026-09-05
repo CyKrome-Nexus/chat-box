@@ -1,6 +1,7 @@
 import type { MediaStream } from "react-native-webrtc";
 
 import { CallPeerConnection } from "./webrtcService";
+import { refreshDynamicTurnCredentials } from "./webrtcConfig";
 import { AdaptiveBitrateController } from "./adaptiveBitrate";
 import { realtimeSocketClient } from "@/src/lib/realtime/socketClient";
 import { ICallSignalEvent } from "@/src/lib/realtime/types";
@@ -77,6 +78,10 @@ class CallEngineManager {
         currentUserId: string
     ) {
         if (!REALTIME_CONFIGURED) return;
+
+        // Best-effort dynamic TURN credential refresh — see
+        // docs/architecture/backend-infrastructure.md and webrtcConfig.ts.
+        await refreshDynamicTurnCredentials();
 
         const peer = new CallPeerConnection();
         this.peer = peer;
