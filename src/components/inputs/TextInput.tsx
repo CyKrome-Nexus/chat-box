@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View, TextInput as NativeTextInput, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, TextInput as NativeTextInput, TouchableOpacity, KeyboardTypeOptions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { ReactNode } from "react";
 
 import Colors from "@/src/constants/Colors";
 import { useState } from "react";
@@ -13,6 +14,9 @@ type TTextInput = {
 	label?: string;
 	labelColor?: string;
 	maxLength?: number
+	error?: string
+	keyboardType?: KeyboardTypeOptions
+	leftAccessory?: ReactNode
 }
 
 const TextInput = ({
@@ -23,6 +27,9 @@ const TextInput = ({
 	label,
 	labelColor = Colors.focused,
 	maxLength,
+	error,
+	keyboardType,
+	leftAccessory,
 }: TTextInput) => {
 
 	const [showPassword, setShowPassword] = useState({ status: false, text: 'Show Password' });
@@ -44,7 +51,8 @@ const TextInput = ({
 						</Text>
 					)
 				}
-				<View style={[styles.main, styles.inputContainter]}>
+				<View style={[styles.main, styles.inputContainter, error && styles.inputContainerError]}>
+					{leftAccessory}
 					<NativeTextInput
 						style={styles.inputBox}
 						value={value}
@@ -52,6 +60,7 @@ const TextInput = ({
 						placeholder={placeholder}
 						secureTextEntry={isPassword && !showPassword.status}
 						autoCapitalize={'none'}
+						keyboardType={keyboardType}
 						maxLength={maxLength ?? (isPassword ? 20 : 254)}
 					/>
 					{
@@ -70,6 +79,7 @@ const TextInput = ({
 						</TouchableOpacity>
 					}
 				</View>
+				{!!error && <Text style={styles.errorText}>{error}</Text>}
 			</View>
 		</>
 	);
@@ -90,8 +100,12 @@ const styles = StyleSheet.create({
 	inputContainter: {
 		flex: 1,
 		flexDirection: 'row',
+		alignItems: 'center',
 		borderBottomColor: '#CDD1D0',
 		borderBottomWidth: 1,
+	},
+	inputContainerError: {
+		borderBottomColor: '#F04A4C',
 	},
 	inputBox: {
 		flex: 1,
@@ -101,6 +115,11 @@ const styles = StyleSheet.create({
 	toggleButton: {
 		justifyContent: 'center',
 		alignItems: 'center',
+	},
+	errorText: {
+		color: '#F04A4C',
+		fontSize: 12,
+		marginTop: 4,
 	},
 });
 
