@@ -44,6 +44,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Ephemeral Stories & Status](./architecture/stories.md) | 24-hour status updates (photo/video/text) with a viewed/unviewed ring carousel, a segmented-progress story player with tap/hold/swipe-up-to-reply, viewer analytics, and auto-expiry. |
 | [Groups, Admin Permissions, Invite Links & Broadcasts](./architecture/groups.md) | Multi-step group creation, color-coded sender names, @mention autocomplete, admin promote/demote/remove, send/edit permission gating, working invite-link QR deep links, and broadcast list fan-out sending. |
 | [Push Notifications, Background Sync & Quick Replies](./architecture/push-notifications.md) | Interactive Reply/Mark-as-Read notification actions, rich avatar previews, per-conversation grouping, app badge sync, mute/DND-aware in-app banners — and what real APNs/FCM registration would still need. |
+| [Deep E2EE Cryptographic Engine](./architecture/e2ee-crypto.md) | Real, from-scratch X3DH + Double Ratchet + Sender Keys using pure-JS Curve25519/Ed25519/AES-CBC/HMAC-SHA256 primitives, wired into the live 1-on-1 message path, with Signal-algorithm Safety Numbers and a self-verifying cryptographic self-test. |
 
 ---
 

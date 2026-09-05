@@ -16,6 +16,7 @@ import {
 } from "@/src/redux/features/chatsSlice";
 import { IChatRibbon, IGroupParticipant } from "@/src/interfaces/list-interface";
 import { buildGroupInviteDeepLink, buildGroupInviteDisplayLink } from "@/src/lib/groups/inviteLink";
+import { rotateSenderKey } from "@/src/lib/crypto/senderKeys";
 
 const CURRENT_USER_ID = "me";
 
@@ -54,7 +55,16 @@ const GroupInfoScreen = () => {
 			{
 				text: "Remove from Group",
 				style: "destructive",
-				onPress: () => dispatch(removeGroupParticipant({ chatId: chat.id, participantId: participant.id })),
+				onPress: () => {
+					dispatch(removeGroupParticipant({ chatId: chat.id, participantId: participant.id }));
+					// Forward secrecy at the membership level: a removed
+					// member's cached sender key chain must not be able to
+					// decrypt anything sent afterward. See e2ee-crypto.md.
+					const remaining = participants
+						.filter((p) => p.id !== participant.id && p.id !== CURRENT_USER_ID)
+						.map((p) => p.id);
+					rotateSenderKey(chat.id, CURRENT_USER_ID, remaining);
+				},
 			},
 		]);
 	};

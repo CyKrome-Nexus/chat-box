@@ -6,6 +6,7 @@ import { TConnectionStatus } from "@/src/lib/realtime/types";
 import { composeMessage, editMessage as editMessageAction } from "@/src/redux/features/messagesSlice";
 import { IMessage } from "@/src/interfaces/message-interface";
 import { computeExpiresAt } from "@/src/lib/security/disappearingMessages";
+import { encryptForConversation } from "@/src/lib/crypto/sessionManager";
 
 const TYPING_TIMEOUT_MS = 3000;
 
@@ -59,13 +60,22 @@ export const useChatRealtime = (conversationId: string, currentUserId: string) =
                 expiresAt: computeExpiresAt(chat?.disappearingTimer),
             };
 
-            const emitted = realtimeSocketClient.emit("message:send", {
-                conversationId,
-                messageId: message.id,
-                text: trimmed,
-                senderId: currentUserId,
-                timestamp: message.timestamp,
-            });
+            // The local copy (what gets rendered/searched/edited) always
+            // stays plaintext, same as every real E2EE messenger decrypts to
+            // plaintext for local display — only the wire payload below is
+            // ciphertext. See docs/architecture/e2ee-crypto.md.
+            const emitted = realtimeSocketClient.getStatus() === "online";
+            if (emitted) {
+                encryptForConversation(conversationId, trimmed).then((envelope) => {
+                    realtimeSocketClient.emit("message:send", {
+                        conversationId,
+                        messageId: message.id,
+                        text: envelope,
+                        senderId: currentUserId,
+                        timestamp: message.timestamp,
+                    });
+                });
+            }
 
             dispatch(
                 composeMessage({

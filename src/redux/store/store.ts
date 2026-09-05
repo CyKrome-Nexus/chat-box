@@ -10,6 +10,7 @@ import contactsReducer from "../features/contactsSlice";
 import callReducer from "../features/callSlice";
 import settingsReducer from "../features/settingsSlice";
 import storiesReducer from "../features/storiesSlice";
+import e2eeReducer from "../features/e2eeSlice";
 import { persistenceMiddleware } from "../middleware/persistenceMiddleware";
 
 const rootReducer = combineReducers({
@@ -22,6 +23,7 @@ const rootReducer = combineReducers({
    call: callReducer,
    settings: settingsReducer,
    stories: storiesReducer,
+   e2ee: e2eeReducer,
 });
 
 export const store = configureStore({
