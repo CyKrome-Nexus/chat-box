@@ -49,6 +49,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Zero-Knowledge Encrypted Push Notifications](./architecture/encrypted-push.md) | The encrypted push payload contract, an encrypted quick-reply path, and an App Group config plugin — plus an honest account of why the iOS NSE/Android background decryptor themselves are native platform code this environment can't build or verify, with reference (unbuilt) Swift/Kotlin showing the integration shape. |
 | [Animated Stickers, Sticker Maker & GIFs](./architecture/stickers.md) | Real hand-authored `.tgs` (gzipped Lottie) stickers rendered via `lottie-react-native`, a pack manager with shareable deep links, and an in-app sticker maker using a manual lasso cutout as a real substitute for native ML subject segmentation. |
 | [Production Status & Stories Pipeline](./architecture/stories-pipeline.md) | Adjacent-story image prefetching, video-clock-synced progress bars, a real per-post audience picker with Sender-Keys-based key distribution, read-receipts-aware view tracking, a Muted Updates accordion, and Save to Personal Archive. |
+| [Backend & Cloud Infrastructure](./architecture/backend-infrastructure.md) | A precise specification of the WebSocket gateway/Redis/Postgres/Coturn/CDN backend this client already assumes and is built against (env vars, event contract, prekey-bundle/ciphertext-upload shapes) — plus a real client-side dynamic TURN credential refresh. No server code belongs in this client repo. |
 
 ---
 
