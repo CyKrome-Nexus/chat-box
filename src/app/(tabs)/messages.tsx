@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import ListDrawer from "@/src/components/ListDrawer";
 import ChatRibbon from "@/src/components/riboons/ChatRibbon";
+import StoriesCarousel from "@/src/components/stories/StoriesCarousel";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
 import Colors from "@/src/constants/Colors";
 
@@ -57,6 +58,7 @@ const Messages = () => {
 					contentContainerStyle={{ paddingBottom: 180 }}
 					ListHeaderComponent={
 						<View>
+							<StoriesCarousel />
 							<View style={styles.filterRow}>
 								{FILTERS.map((f) => (
 									<TouchableOpacity

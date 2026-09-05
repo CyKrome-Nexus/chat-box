@@ -9,6 +9,7 @@ import sessionReducer from "../features/sessionSlice";
 import contactsReducer from "../features/contactsSlice";
 import callReducer from "../features/callSlice";
 import settingsReducer from "../features/settingsSlice";
+import storiesReducer from "../features/storiesSlice";
 import { persistenceMiddleware } from "../middleware/persistenceMiddleware";
 
 const rootReducer = combineReducers({
@@ -20,6 +21,7 @@ const rootReducer = combineReducers({
    contacts: contactsReducer,
    call: callReducer,
    settings: settingsReducer,
+   stories: storiesReducer,
 });
 
 export const store = configureStore({
