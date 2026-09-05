@@ -29,6 +29,8 @@ import MediaViewerModal from "@/src/components/messages/MediaViewerModal";
 import VoiceRecordingBar from "@/src/components/messages/VoiceRecordingBar";
 import HandsfreeRecordingBar from "@/src/components/messages/HandsfreeRecordingBar";
 import EmojiPicker from "@/src/components/messages/EmojiPicker";
+import StickerPicker from "@/src/components/stickers/StickerPicker";
+import { addRecentSticker } from "@/src/redux/features/stickersSlice";
 import ReplyPreviewBar from "@/src/components/messages/ReplyPreviewBar";
 import VideoNoteRecordingOverlay from "@/src/components/messages/VideoNoteRecordingOverlay";
 import FullscreenVideoModal from "@/src/components/messages/FullscreenVideoModal";
@@ -137,6 +139,7 @@ const Chat = () => {
 	const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
 	const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
 	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+	const [showStickerPicker, setShowStickerPicker] = useState(false);
 	const [viewerMessageId, setViewerMessageId] = useState<string | undefined>();
 	const [fullscreenVideoUri, setFullscreenVideoUri] = useState<string | undefined>();
 	const [replyTo, setReplyTo] = useState<IMessage | null>(null);
@@ -362,6 +365,12 @@ const Chat = () => {
 
 		setText(nextText);
 		setSelection({ start: cursor, end: cursor });
+	};
+
+	const handleSelectSticker = (stickerId: string) => {
+		dispatch(addRecentSticker(stickerId));
+		sendAttachmentMessage({ type: "sticker", stickerId });
+		setShowStickerPicker(false);
 	};
 
 	const sendAttachmentMessage = async (attachment: IAttachment, caption: string = "") => {
@@ -971,12 +980,27 @@ const Chat = () => {
 									onPress={() => {
 										Keyboard.dismiss();
 										setShowEmojiPicker((prev) => !prev);
+										setShowStickerPicker(false);
 									}}
 								>
 									<MaterialCommunityIcons
 										name="sticker-emoji"
 										size={22}
 										color={showEmojiPicker ? Colors.focused : "#818181"}
+									/>
+								</TouchableOpacity>
+								<TouchableOpacity
+									style={{ marginLeft: 6 }}
+									onPress={() => {
+										Keyboard.dismiss();
+										setShowStickerPicker((prev) => !prev);
+										setShowEmojiPicker(false);
+									}}
+								>
+									<MaterialCommunityIcons
+										name="sticker-outline"
+										size={22}
+										color={showStickerPicker ? Colors.focused : "#818181"}
 									/>
 								</TouchableOpacity>
 							</>
@@ -1038,6 +1062,7 @@ const Chat = () => {
 					</View>
 
 					{showEmojiPicker && <EmojiPicker onSelectEmoji={handleSelectEmoji} />}
+					{showStickerPicker && <StickerPicker onSelectSticker={handleSelectSticker} />}
 				</KeyboardStickyView>
 
 				<AttachmentSheet

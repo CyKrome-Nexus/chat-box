@@ -2,7 +2,7 @@ export type TMessageType = "sender" | "receiver";
 
 export type TMessageStatus = "sent" | "delivered" | "read";
 
-export type TAttachmentType = "image" | "video" | "document" | "location" | "audio" | "video_note";
+export type TAttachmentType = "image" | "video" | "document" | "location" | "audio" | "video_note" | "sticker";
 
 export interface IAttachment {
     type: TAttachmentType;
@@ -24,6 +24,8 @@ export interface IAttachment {
     viewOnceOpened?: boolean;
     /** Set once this attachment's AES-256-GCM encrypt→verify→decrypt round trip has been confirmed. See e2ee-media.md. */
     mediaEncryptionVerified?: boolean;
+    /** "sticker" attachments only — id into state.stickers.stickers. See stickers.md. */
+    stickerId?: string;
 }
 
 export interface IMessage {

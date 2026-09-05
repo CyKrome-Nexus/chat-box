@@ -11,6 +11,7 @@ import callReducer from "../features/callSlice";
 import settingsReducer from "../features/settingsSlice";
 import storiesReducer from "../features/storiesSlice";
 import e2eeReducer from "../features/e2eeSlice";
+import stickersReducer from "../features/stickersSlice";
 import { persistenceMiddleware } from "../middleware/persistenceMiddleware";
 
 const rootReducer = combineReducers({
@@ -24,6 +25,7 @@ const rootReducer = combineReducers({
    settings: settingsReducer,
    stories: storiesReducer,
    e2ee: e2eeReducer,
+   stickers: stickersReducer,
 });
 
 export const store = configureStore({
