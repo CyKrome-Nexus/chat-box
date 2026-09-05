@@ -6,6 +6,7 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import { useSelector } from "react-redux";
 
 import BIcon from "../buttons/BIcon";
 import {
@@ -20,12 +21,13 @@ import { ICallRibbon } from "@/src/interfaces/list-interface";
 import IconSVG from "../images/IconSVG";
 import ECallTypes from "@/src/enums/call-types";
 import IIconSVG from "@/src/interfaces/icon-interface";
-import { useCallManager } from "@/src/hooks/useCallManager";
+import { useCallEngine } from "@/src/hooks/useCallEngine";
 
 const BUTTON_WIDTH = Dimensions.get("window").width * 0.3;
 
 const CallRibbon = ({ content }: { content: ICallRibbon }) => {
-	const { startOutgoingCall } = useCallManager();
+	const currentUserId = useSelector((state: any) => state.user?._id || state.user?.username || "me");
+	const { startOutgoingCall } = useCallEngine(currentUserId);
 
 	var svg: IIconSVG;
 	switch (content?.callType) {
