@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { AppState } from "react-native";
 import { useDispatch, useStore } from "react-redux";
 
 import { realtimeSocketClient } from "@/src/lib/realtime/socketClient";
@@ -9,7 +10,7 @@ import {
     IReadReceiptEvent,
     ITypingEvent,
 } from "@/src/lib/realtime/types";
-import { setConnectionStatus, setPresence, setTyping } from "@/src/redux/features/connectionSlice";
+import { setConnectionStatus, setPresence, setTyping, showInAppBanner } from "@/src/redux/features/connectionSlice";
 import {
     editMessage,
     markMessageFlushed,
@@ -18,6 +19,7 @@ import {
 } from "@/src/redux/features/messagesSlice";
 import { unarchiveChat } from "@/src/redux/features/chatsSlice";
 import { computeExpiresAt } from "@/src/lib/security/disappearingMessages";
+import { showMessageNotification } from "@/src/lib/notifications/messageNotifications";
 
 /**
  * The realtime server URL. Configure via an EXPO_PUBLIC_ env var so it can
@@ -103,6 +105,30 @@ export const useRealtimeConnection = (currentUserId?: string) => {
 
             if (chat?.archived && state.settings.chat.unarchiveOnNewMessage) {
                 dispatch(unarchiveChat(payload.conversationId));
+            }
+
+            // Do Not Disturb: muted chats never produce a sound/alert/banner,
+            // and neither does the conversation currently on screen (nothing
+            // to surface — the user is already looking at it). See
+            // docs/architecture/push-notifications.md.
+            if (chat?.muted || state.connection.activeConversationId === payload.conversationId) return;
+
+            if (AppState.currentState === "active") {
+                dispatch(
+                    showInAppBanner({
+                        conversationId: payload.conversationId,
+                        chatName: chat?.name || "New message",
+                        avatarUrl: chat?.avatar?.url,
+                        text: payload.text,
+                    })
+                );
+            } else {
+                showMessageNotification({
+                    conversationId: payload.conversationId,
+                    chatName: chat?.name || "New message",
+                    chatAvatarUrl: chat?.avatar?.url,
+                    messageText: payload.text,
+                });
             }
         };
 

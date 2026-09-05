@@ -1,16 +1,29 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { TConnectionStatus } from "@/src/lib/realtime/types";
 
+export interface IInAppBanner {
+    conversationId: string;
+    chatName: string;
+    avatarUrl?: string;
+    text: string;
+}
+
 interface ConnectionState {
     status: TConnectionStatus;
     typingByConversation: Record<string, string[]>;
     presenceByUser: Record<string, "online" | "offline">;
+    /** Conversation currently open on screen — see push-notifications.md for why this matters. */
+    activeConversationId: string | null;
+    /** In-app notification banner — see InAppMessageBanner.tsx. */
+    pendingBanner: IInAppBanner | null;
 }
 
 const initialState: ConnectionState = {
     status: "idle",
     typingByConversation: {},
     presenceByUser: {},
+    activeConversationId: null,
+    pendingBanner: null,
 };
 
 export const connectionSlice = createSlice({
@@ -37,8 +50,24 @@ export const connectionSlice = createSlice({
         ) => {
             state.presenceByUser[action.payload.userId] = action.payload.status;
         },
+        setActiveConversationId: (state, action: PayloadAction<string | null>) => {
+            state.activeConversationId = action.payload;
+        },
+        showInAppBanner: (state, action: PayloadAction<IInAppBanner>) => {
+            state.pendingBanner = action.payload;
+        },
+        dismissInAppBanner: (state) => {
+            state.pendingBanner = null;
+        },
     },
 });
 
-export const { setConnectionStatus, setTyping, setPresence } = connectionSlice.actions;
+export const {
+    setConnectionStatus,
+    setTyping,
+    setPresence,
+    setActiveConversationId,
+    showInAppBanner,
+    dismissInAppBanner,
+} = connectionSlice.actions;
 export default connectionSlice.reducer;
