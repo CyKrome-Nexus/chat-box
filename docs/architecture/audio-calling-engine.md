@@ -40,6 +40,12 @@ versions documented as compatible with this project's Expo SDK 54
 
 ## `useCallEngine`
 
+> [!NOTE]
+> As of the video-calling work (`docs/architecture/video-calling.md`), the actual peer connection
+> lifecycle moved out of this hook into a `callEngineManager` singleton, so it survives navigating
+> away from the `/call` screen (needed for in-app PiP). `useCallEngine` is now a thin binding on
+> top of that singleton; the behavior described below is unchanged, just relocated.
+
 Wraps `useCallManager` (the local call-UI state machine from
 `docs/architecture/calling.md`) with real signaling, gated on `EXPO_PUBLIC_REALTIME_URL` being
 set:

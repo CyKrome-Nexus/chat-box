@@ -30,6 +30,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Device Contacts](./architecture/contacts.md) | expo-contacts sync, registered-status lookup, search, add-contact modal, start-chat flow. |
 | [Audio & Video Calling UI](./architecture/calling.md) | Call state machine, outgoing/incoming/active screens, call history logging. |
 | [Production Audio Calling Engine](./architecture/audio-calling-engine.md) | WebRTC, CallKit/Telecom native call UI, proximity-sensor audio routing — and an honest list of what still needs real infra/credentials. |
+| [Full-Featured Video Calling](./architecture/video-calling.md) | Singleton call engine, camera flip/preview, adaptive bitrate, in-app PiP bubble, group video grid — and what's still SFU/native-PiP-dependent. |
 | [Profile & QR Code](./architecture/profile-qr.md) | Profile view/edit, avatar cropping, QR code generation/sharing, QR scanner. |
 | [Fluid Micro-Animations & Gestures](./architecture/micro-animations.md) | Swipe-to-reply, keyboard-interactive input bar, morphing send/mic button, lightbox drag-to-dismiss, animated status ticks. |
 

@@ -10,7 +10,7 @@ import { useCallEngine } from "@/src/hooks/useCallEngine";
 
 const CallScreen = () => {
 	const currentUserId = useSelector((state: any) => state.user?._id || state.user?.username || "me");
-	const { activeCall, acceptIncomingCall, hangUp } = useCallEngine(currentUserId);
+	const { activeCall, acceptIncomingCall, hangUp, remoteStream } = useCallEngine(currentUserId);
 
 	// No active call (e.g. screen reopened after the call already ended) —
 	// nothing to show, so back out immediately.
@@ -32,7 +32,7 @@ const CallScreen = () => {
 	if (!activeCall) return null;
 
 	if (activeCall.status === "active") {
-		return <ActiveCallView call={activeCall} onHangUp={hangUp} />;
+		return <ActiveCallView call={activeCall} onHangUp={hangUp} remoteStream={remoteStream} />;
 	}
 
 	if (activeCall.direction === "incoming") {
