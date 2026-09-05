@@ -4,17 +4,24 @@ import IIconSVG from "@/src/interfaces/icon-interface";
 
 const BContainer = ({
    svgs,
-   borderColor = 'white'
+   borderColor = 'white',
+   onPressAt,
 }: {
    svgs: (IIconSVG | string)[],
-   borderColor?: string
+   borderColor?: string,
+   onPressAt?: (index: number) => void,
 }) => {
    return (
       <>
          <View style={ styles.iconButtonsContainer }>
             {
                svgs && svgs?.map((svg: IIconSVG | string, key: number) => (
-                  <BIcon svg={ svg } key={key} borderColor={borderColor} />
+                  <BIcon
+                     svg={ svg }
+                     key={key}
+                     borderColor={borderColor}
+                     onPress={onPressAt ? () => onPressAt(key) : undefined}
+                  />
                ))
             }
          </View>

@@ -18,6 +18,7 @@ export interface IStoredUser {
     password: string;
     avatarUrl?: string;
     about?: string;
+    provider?: "google" | "facebook" | "apple";
 }
 
 export class AuthError extends Error {}
@@ -66,6 +67,34 @@ export const login = async ({
         throw new AuthError("Invalid credentials. Please check and try again.");
     }
 
+    return user;
+};
+
+/**
+ * Exchanges a social provider profile for a local session: fetches the
+ * existing account by identifier (email, or a provider-scoped fallback id
+ * when the provider doesn't share an email) or creates one on first sign-in
+ * ("account creation & linking" — there's no OAuth token exchange with a
+ * backend here since none exists, but the shape mirrors what one would do).
+ */
+export const upsertSocialUser = async ({
+    provider,
+    identifier,
+    name,
+    avatarUrl,
+}: {
+    provider: "google" | "facebook" | "apple";
+    identifier: string;
+    name: string;
+    avatarUrl?: string;
+}): Promise<IStoredUser> => {
+    const users = await getUsers();
+    const key = normalize(identifier);
+    const existing = users.find((u) => u.identifier === key);
+    if (existing) return existing;
+
+    const user: IStoredUser = { identifier: key, name, password: "", avatarUrl, provider };
+    await saveUsers([...users, user]);
     return user;
 };
 
