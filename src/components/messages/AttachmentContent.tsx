@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { IAttachment } from "@/src/interfaces/message-interface";
 import AudioMessageBubble from "./AudioMessageBubble";
+import VideoNoteBubble from "./VideoNoteBubble";
 
 const formatFileSize = (bytes?: number) => {
 	if (!bytes) return "";
@@ -16,12 +17,14 @@ const AttachmentContent = ({
 	attachment,
 	isSender,
 	onPressImage,
+	onPressVideoNote,
 }: {
 	messageId: string;
 	conversationId: string;
 	attachment: IAttachment;
 	isSender: boolean;
 	onPressImage?: (uri: string) => void;
+	onPressVideoNote?: (uri: string) => void;
 }) => {
 	if (attachment.type === "audio") {
 		return (
@@ -30,6 +33,16 @@ const AttachmentContent = ({
 				conversationId={conversationId}
 				attachment={attachment}
 				isSender={isSender}
+			/>
+		);
+	}
+
+	if (attachment.type === "video_note") {
+		return (
+			<VideoNoteBubble
+				messageId={messageId}
+				attachment={attachment}
+				onLongPressFullscreen={() => attachment.uri && onPressVideoNote?.(attachment.uri)}
 			/>
 		);
 	}

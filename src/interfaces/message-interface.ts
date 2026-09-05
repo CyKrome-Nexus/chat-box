@@ -2,7 +2,7 @@ export type TMessageType = "sender" | "receiver";
 
 export type TMessageStatus = "sent" | "delivered" | "read";
 
-export type TAttachmentType = "image" | "video" | "document" | "location" | "audio";
+export type TAttachmentType = "image" | "video" | "document" | "location" | "audio" | "video_note";
 
 export interface IAttachment {
     type: TAttachmentType;
@@ -14,8 +14,9 @@ export interface IAttachment {
     longitude?: number;
     /** 0-100. Undefined/100 means the "upload" has finished. */
     uploadProgress?: number;
-    /** Audio attachments only: duration in seconds and a normalized (0-1) amplitude sample set. */
+    /** Audio/video_note attachments only: duration in seconds. */
     duration?: number;
+    /** Audio attachments only: a normalized (0-1) amplitude sample set. */
     waveform?: number[];
 }
 

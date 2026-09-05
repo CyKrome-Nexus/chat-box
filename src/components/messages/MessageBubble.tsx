@@ -64,11 +64,13 @@ const MessageBubble = ({
 	message,
 	avatar,
 	onPressImage,
+	onPressVideoNote,
 	onSwipeReply,
 }: {
 	message: IMessage;
 	avatar?: IAvatar;
 	onPressImage?: (uri: string) => void;
+	onPressVideoNote?: (uri: string) => void;
 	onSwipeReply?: (message: IMessage) => void;
 }) => {
 	const isSender = message.type === "sender";
@@ -152,6 +154,7 @@ const MessageBubble = ({
 								attachment={message.attachment}
 								isSender={isSender}
 								onPressImage={onPressImage}
+								onPressVideoNote={onPressVideoNote}
 							/>
 						)}
 						{!!message.text && (
