@@ -1,5 +1,5 @@
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { useSelector } from "react-redux";
+import { Alert, Share, StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
 
 import ListDrawer from "@/src/components/ListDrawer";
 import { IUser } from "@/src/interfaces/user-interface";
@@ -15,46 +15,66 @@ import {
 	question,
 } from "@/src/constants/svgs/icons";
 import { FlatList } from "react-native-gesture-handler";
-import { useState } from "react";
 import { ISettingsRibbon } from "@/src/interfaces/list-interface";
 import SettingsRibbon from "@/src/components/riboons/SettingsRibbon";
 import { router } from "expo-router";
+import { logoutUser } from "@/src/lib/features";
+
+const handleInviteFriend = () => {
+	Share.share({
+		message: "Join me on Chatbox! Download the app to start chatting: https://chatbox.link/download",
+	});
+};
 
 const Settings = () => {
+	const dispatch = useDispatch();
 	const user = useSelector((state: { user: IUser }) => state.user);
 
-	const [settingsList, setSettingsList] = useState<ISettingsRibbon[]>([
+	const settingsList: ISettingsRibbon[] = [
 		{
 			title: "Account",
 			description: "Privacy, Security, Change Number etc",
 			svg: key,
+			onPress: () => router.push("/settings-account"),
 		},
 		{
 			title: "Chat",
 			description: "Chat History, Theme, Wallpapers",
 			svg: message,
+			onPress: () => router.push("/settings-chat"),
 		},
 		{
 			title: "Notifications",
 			description: "Messages, Groups and Others",
 			svg: notificationBell?.focused as string,
+			onPress: () => router.push("/settings-notifications"),
 		},
 		{
 			title: "Help",
 			description: "Help Center, Contact Us, Privacy Policy etc",
 			svg: question,
+			onPress: () => router.push("/settings-help"),
 		},
 		{
 			title: "Storage and Data",
 			description: "Network Usage, Storage Usage etc",
 			svg: data,
+			onPress: () => router.push("/settings-storage"),
 		},
 		{
 			title: "Invite a Friend",
 			description: "Share Chatbox with your contacts",
 			svg: inviteFriends,
+			onPress: handleInviteFriend,
 		},
-	]);
+	];
+
+	const handleLogout = () => {
+		Alert.alert("Log Out", "Are you sure you want to log out?", [
+			{ text: "Cancel", style: "cancel" },
+			{ text: "Log Out", style: "destructive", onPress: () => logoutUser(dispatch) },
+		]);
+	};
 
 	return (
 		<>
@@ -77,8 +97,13 @@ const Settings = () => {
 						data={settingsList}
 						renderItem={({ item }: { item: ISettingsRibbon }) => (
 							<>
-								<SettingsRibbon content={item} />
+								<SettingsRibbon content={item} onPress={item.onPress} />
 							</>
+						)}
+						ListFooterComponent={() => (
+							<TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+								<Text style={styles.logoutText}>Log Out</Text>
+							</TouchableOpacity>
 						)}
 					/>
 				</ListDrawer>
@@ -105,6 +130,19 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		flex: 1,
 		gap: 1,
+	},
+	logoutButton: {
+		marginTop: 20,
+		marginBottom: 40,
+		alignItems: "center",
+		paddingVertical: 14,
+		borderRadius: 14,
+		backgroundColor: "#FDECEC",
+	},
+	logoutText: {
+		color: "#F04A4C",
+		fontWeight: "700",
+		fontSize: 16,
 	},
 });
 

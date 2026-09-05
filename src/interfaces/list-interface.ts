@@ -53,6 +53,7 @@ export interface ISettingsRibbon {
     svg: string | IIconSVG;
     title: string;
     description?: string;
+    onPress?: () => void;
 }
 
 export interface ISettingsList {

@@ -96,6 +96,11 @@ export const messagesSlice = createSlice({
                 if (progress >= 100) message.status = "sent";
             }
         },
+        /** Settings > Chat > "Clear all chats". */
+        clearAllMessages: (state) => {
+            state.byConversation = {};
+            state.outboxByConversation = {};
+        },
     },
 });
 
@@ -106,5 +111,6 @@ export const {
     receiveMessage,
     seedConversation,
     updateAttachmentProgress,
+    clearAllMessages,
 } = messagesSlice.actions;
 export default messagesSlice.reducer;
