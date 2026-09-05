@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { CameraView, useCameraPermissions, useMicrophonePermissions, FlashMode } from "expo-camera";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +16,7 @@ const FLASH_CYCLE: FlashMode[] = ["off", "on", "auto"];
  * mediaComposerBridge — see docs/architecture/media-editor.md.
  */
 const CameraCaptureScreen = () => {
+	const params = useLocalSearchParams<{ target?: string }>();
 	const cameraRef = useRef<CameraView>(null);
 	const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 	const [micPermission, requestMicPermission] = useMicrophonePermissions();
@@ -39,7 +40,10 @@ const CameraCaptureScreen = () => {
 	};
 
 	const openEditor = (uri: string, type: "image" | "video") => {
-		router.replace({ pathname: "/media-editor", params: { uri, type } });
+		router.replace({
+			pathname: "/media-editor",
+			params: params.target ? { uri, type, target: params.target } : { uri, type },
+		});
 	};
 
 	const takePhoto = async () => {

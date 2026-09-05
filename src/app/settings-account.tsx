@@ -9,6 +9,7 @@ import {
 	setBiometricLockEnabled,
 	setPrivacyPref,
 	setPrivacyVisibility,
+	setStatusPrivacy,
 	TAutoLockTimeout,
 } from "@/src/redux/features/settingsSlice";
 import { deleteAccount } from "@/src/lib/auth/authService";
@@ -20,6 +21,12 @@ const AUTO_LOCK_OPTIONS: { key: TAutoLockTimeout; label: string }[] = [
 	{ key: "1min", label: "1 min" },
 	{ key: "15min", label: "15 min" },
 	{ key: "1hour", label: "1 hour" },
+];
+
+const STATUS_PRIVACY_OPTIONS: { key: "contacts" | "contactsExcept" | "onlyShareWith"; label: string }[] = [
+	{ key: "contacts", label: "My Contacts" },
+	{ key: "contactsExcept", label: "Contacts Except…" },
+	{ key: "onlyShareWith", label: "Only Share With…" },
 ];
 
 const SettingsAccount = () => {
@@ -73,6 +80,27 @@ const SettingsAccount = () => {
 				value={privacy.readReceipts}
 				onValueChange={(value) => dispatch(setPrivacyPref({ key: "readReceipts", value }))}
 			/>
+
+			<Text style={styles.sectionTitle}>Status Privacy</Text>
+			<Text style={styles.note}>Who can see new status updates you post, by default.</Text>
+			<View style={styles.autoLockOptions}>
+				{STATUS_PRIVACY_OPTIONS.map((option) => (
+					<TouchableOpacity
+						key={option.key}
+						style={[styles.autoLockChip, privacy.statusPrivacy === option.key && styles.autoLockChipActive]}
+						onPress={() => dispatch(setStatusPrivacy(option.key))}
+					>
+						<Text
+							style={[
+								styles.autoLockChipText,
+								privacy.statusPrivacy === option.key && styles.autoLockChipTextActive,
+							]}
+						>
+							{option.label}
+						</Text>
+					</TouchableOpacity>
+				))}
+			</View>
 
 			<Text style={styles.sectionTitle}>Security</Text>
 			<SettingToggleRow
@@ -138,6 +166,11 @@ const styles = StyleSheet.create({
 		backgroundColor: "#fff",
 		paddingHorizontal: 20,
 		paddingBottom: 40,
+	},
+	note: {
+		fontSize: 12,
+		color: "#797C7B",
+		marginBottom: 10,
 	},
 	sectionTitle: {
 		fontSize: 13,

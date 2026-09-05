@@ -11,6 +11,8 @@ interface SettingsState {
         aboutVisibility: TVisibility;
         readReceipts: boolean;
         twoFactorEnabled: boolean;
+        /** Default audience for new status updates — see stories.md. */
+        statusPrivacy: "contacts" | "contactsExcept" | "onlyShareWith";
     };
     notifications: {
         sound: boolean;
@@ -43,6 +45,7 @@ const initialState: SettingsState = {
         aboutVisibility: "everyone",
         readReceipts: true,
         twoFactorEnabled: false,
+        statusPrivacy: "contacts",
     },
     notifications: {
         sound: true,
@@ -94,6 +97,12 @@ export const settingsSlice = createSlice({
         ) => {
             state.privacy[action.payload.key] = action.payload.value;
         },
+        setStatusPrivacy: (
+            state,
+            action: PayloadAction<SettingsState["privacy"]["statusPrivacy"]>
+        ) => {
+            state.privacy.statusPrivacy = action.payload;
+        },
         setNotificationPref: (
             state,
             action: PayloadAction<{ key: keyof SettingsState["notifications"]; value: boolean }>
@@ -128,6 +137,7 @@ export const {
     hydrateSettings,
     setPrivacyPref,
     setPrivacyVisibility,
+    setStatusPrivacy,
     setNotificationPref,
     setTheme,
     setAutoDownloadPref,

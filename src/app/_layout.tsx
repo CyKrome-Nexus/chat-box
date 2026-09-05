@@ -16,6 +16,7 @@ import { useCallKeepIntegration } from "../hooks/useCallKeepIntegration";
 import { useIncomingCallNotification } from "../hooks/useIncomingCallNotification";
 import { useAppLock } from "../hooks/useAppLock";
 import { useDisappearingMessagesSweep } from "../hooks/useDisappearingMessagesSweep";
+import { useStoriesExpirySweep } from "../hooks/useStoriesExpirySweep";
 import FloatingCallBubble from "../components/calling/FloatingCallBubble";
 import AppLockScreen from "../components/security/AppLockScreen";
 import { Stack } from "expo-router";
@@ -40,6 +41,7 @@ const AppGate = () => {
 	useCallKeepIntegration();
 	useIncomingCallNotification();
 	useDisappearingMessagesSweep();
+	useStoriesExpirySweep();
 	const { isLocked, unlock } = useAppLock();
 
 	useEffect(() => {
@@ -63,6 +65,8 @@ const AppGate = () => {
 				<Stack.Screen name="media-editor" options={{ presentation: "fullScreenModal" }} />
 				<Stack.Screen name="document-preview" options={{ presentation: "fullScreenModal" }} />
 				<Stack.Screen name="search" options={{ presentation: "fullScreenModal", animation: "fade" }} />
+				<Stack.Screen name="story-viewer" options={{ presentation: "fullScreenModal", animation: "fade" }} />
+				<Stack.Screen name="story-text-editor" options={{ presentation: "fullScreenModal" }} />
 				<Stack.Screen name="contact-info" options={{ presentation: "card" }} />
 				<Stack.Screen name="shared-media" options={{ presentation: "card" }} />
 				<Stack.Screen name="starred-messages" options={{ presentation: "card" }} />

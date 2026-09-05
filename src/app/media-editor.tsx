@@ -18,6 +18,7 @@ import DoodleCanvas, { DoodleCanvasHandle } from "@/src/components/mediaEditor/D
 import DraggableOverlayItem from "@/src/components/mediaEditor/DraggableOverlayItem";
 import EmojiPicker from "@/src/components/messages/EmojiPicker";
 import { mediaComposerBridge } from "@/src/lib/media/mediaComposerBridge";
+import { storyComposerBridge } from "@/src/lib/media/storyComposerBridge";
 import { compressImage } from "@/src/lib/media/compressImage";
 import { cropImageToAspect, rotateImage90, TCropAspect } from "@/src/lib/media/cropRotateImage";
 import { IOverlayItem, TEXT_COLORS, TEXT_FONTS } from "@/src/lib/media/overlayTypes";
@@ -42,8 +43,9 @@ const ASPECT_OPTIONS: { key: TCropAspect; label: string }[] = [
  * scoping notes (notably: annotations only bake into photos, not video).
  */
 const MediaEditorScreen = () => {
-	const params = useLocalSearchParams<{ uri: string; type: "image" | "video" }>();
+	const params = useLocalSearchParams<{ uri: string; type: "image" | "video"; target?: string }>();
 	const isVideo = params.type === "video";
+	const isStory = params.target === "story";
 
 	const [uri, setUri] = useState(params.uri);
 	const [dimensions, setDimensions] = useState({ width: SCREEN_WIDTH, height: SCREEN_WIDTH });
@@ -147,7 +149,11 @@ const MediaEditorScreen = () => {
 	const selectedItem = items.find((item) => item.id === selectedId);
 
 	const handleDiscard = () => {
-		mediaComposerBridge.submit(null);
+		if (isStory) {
+			storyComposerBridge.submit(null);
+		} else {
+			mediaComposerBridge.submit(null);
+		}
 		router.back();
 	};
 
@@ -155,13 +161,12 @@ const MediaEditorScreen = () => {
 		setIsSending(true);
 		try {
 			if (isVideo) {
-				const attachment: IAttachment = {
-					type: "video",
-					uri,
-					uploadProgress: 0,
-					viewOnce,
-				};
-				mediaComposerBridge.submit({ attachment, caption });
+				if (isStory) {
+					storyComposerBridge.submit({ uri, type: "video", caption });
+				} else {
+					const attachment: IAttachment = { type: "video", uri, uploadProgress: 0, viewOnce };
+					mediaComposerBridge.submit({ attachment, caption });
+				}
 				router.back();
 				return;
 			}
@@ -171,14 +176,13 @@ const MediaEditorScreen = () => {
 			// resolution — see docs/architecture/media-editor.md).
 			const snapshotUri = await captureRef(canvasRef, { format: "jpg", quality: 1 });
 			const { uri: finalUri, size } = await compressImage(snapshotUri);
-			const attachment: IAttachment = {
-				type: "image",
-				uri: finalUri,
-				size,
-				uploadProgress: 0,
-				viewOnce,
-			};
-			mediaComposerBridge.submit({ attachment, caption });
+
+			if (isStory) {
+				storyComposerBridge.submit({ uri: finalUri, type: "image", caption });
+			} else {
+				const attachment: IAttachment = { type: "image", uri: finalUri, size, uploadProgress: 0, viewOnce };
+				mediaComposerBridge.submit({ attachment, caption });
+			}
 			router.back();
 		} finally {
 			setIsSending(false);
@@ -300,12 +304,14 @@ const MediaEditorScreen = () => {
 			)}
 
 			<View style={styles.bottomBar}>
-				<TouchableOpacity
-					style={[styles.viewOnceButton, viewOnce && styles.viewOnceButtonActive]}
-					onPress={() => setViewOnce((prev) => !prev)}
-				>
-					<Ionicons name="flame" size={18} color={viewOnce ? "#fff" : "#ccc"} />
-				</TouchableOpacity>
+				{!isStory && (
+					<TouchableOpacity
+						style={[styles.viewOnceButton, viewOnce && styles.viewOnceButtonActive]}
+						onPress={() => setViewOnce((prev) => !prev)}
+					>
+						<Ionicons name="flame" size={18} color={viewOnce ? "#fff" : "#ccc"} />
+					</TouchableOpacity>
+				)}
 				<TextInput
 					style={styles.captionInput}
 					placeholder="Add a caption…"
