@@ -84,6 +84,18 @@ export const messagesSlice = createSlice({
                 state.byConversation[conversationId] = messages;
             }
         },
+        /** Drives the local simulated upload progress bar for an attachment message. */
+        updateAttachmentProgress: (
+            state,
+            action: PayloadAction<{ conversationId: string; messageId: string; progress: number }>
+        ) => {
+            const { conversationId, messageId, progress } = action.payload;
+            const message = findMessage(state, conversationId, messageId);
+            if (message?.attachment) {
+                message.attachment.uploadProgress = progress;
+                if (progress >= 100) message.status = "sent";
+            }
+        },
     },
 });
 
@@ -93,5 +105,6 @@ export const {
     updateMessageStatus,
     receiveMessage,
     seedConversation,
+    updateAttachmentProgress,
 } = messagesSlice.actions;
 export default messagesSlice.reducer;
