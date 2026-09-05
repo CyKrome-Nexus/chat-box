@@ -12,17 +12,26 @@ const formatFileSize = (bytes?: number) => {
 
 const AttachmentContent = ({
 	messageId,
+	conversationId,
 	attachment,
 	isSender,
 	onPressImage,
 }: {
 	messageId: string;
+	conversationId: string;
 	attachment: IAttachment;
 	isSender: boolean;
 	onPressImage?: (uri: string) => void;
 }) => {
 	if (attachment.type === "audio") {
-		return <AudioMessageBubble messageId={messageId} attachment={attachment} isSender={isSender} />;
+		return (
+			<AudioMessageBubble
+				messageId={messageId}
+				conversationId={conversationId}
+				attachment={attachment}
+				isSender={isSender}
+			/>
+		);
 	}
 
 	const isUploading = (attachment.uploadProgress ?? 100) < 100;

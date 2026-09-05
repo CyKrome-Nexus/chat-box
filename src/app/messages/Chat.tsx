@@ -25,16 +25,19 @@ import EmptyChatState from "@/src/components/messages/EmptyChatState";
 import AttachmentSheet, { TAttachmentOption } from "@/src/components/messages/AttachmentSheet";
 import MediaViewerModal from "@/src/components/messages/MediaViewerModal";
 import VoiceRecordingBar from "@/src/components/messages/VoiceRecordingBar";
+import HandsfreeRecordingBar from "@/src/components/messages/HandsfreeRecordingBar";
 import EmojiPicker from "@/src/components/messages/EmojiPicker";
 import ReplyPreviewBar from "@/src/components/messages/ReplyPreviewBar";
 import { composeMessage, seedConversation, updateAttachmentProgress } from "@/src/redux/features/messagesSlice";
 import { useChatRealtime } from "@/src/hooks/useChatRealtime";
 import { useAttachmentPicker } from "@/src/hooks/useAttachmentPicker";
 import { useVoiceRecorder } from "@/src/hooks/useVoiceRecorder";
+import { audioPlaybackManager } from "@/src/lib/audio/playbackManager";
 import { IAttachment, IMessage } from "@/src/interfaces/message-interface";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
 
 const SLIDE_TO_CANCEL_THRESHOLD = 80;
+const SWIPE_UP_TO_LOCK_THRESHOLD = 80;
 
 const MIN_INPUT_HEIGHT = 36;
 const MAX_INPUT_HEIGHT = 120;
@@ -95,7 +98,10 @@ const Chat = () => {
 	const flatListRef = useRef<FlatList>(null);
 	const { pickAttachment } = useAttachmentPicker();
 	const voiceRecorder = useVoiceRecorder();
+	const [recordingMode, setRecordingMode] = useState<"idle" | "dragging" | "locked" | "preview">("idle");
+	const [previewRecording, setPreviewRecording] = useState<{ uri: string; durationMillis: number; waveform: number[] } | null>(null);
 	const slideX = useSharedValue(0);
+	const slideY = useSharedValue(0);
 	const sendMorph = useSharedValue(0);
 
 	// Seed a small, realistic backlog for existing conversations (identified by
@@ -136,6 +142,16 @@ const Chat = () => {
 	}, [conversationId]);
 
 	const displayData = useMemo(() => buildDisplayData(messages), [messages]);
+
+	// Lets voice notes auto-play the next one in the thread on finish (see
+	// audioPlaybackManager.playNext / docs/architecture/voice-note-studio.md).
+	useEffect(() => {
+		const audioMessageIds = [...messages]
+			.sort((a, b) => a.timestamp - b.timestamp)
+			.filter((m) => m.attachment?.type === "audio")
+			.map((m) => m.id);
+		audioPlaybackManager.registerSequence(conversationId, audioMessageIds);
+	}, [messages, conversationId]);
 
 	const handleSend = () => {
 		if (!text.trim()) return;
@@ -197,37 +213,83 @@ const Chat = () => {
 
 	const handleStartRecording = () => {
 		voiceRecorder.start();
+		setRecordingMode("dragging");
+	};
+
+	const handleLockRecording = () => {
+		setRecordingMode("locked");
 	};
 
 	const handleFinishRecording = async (cancelled: boolean) => {
 		if (cancelled) {
 			await voiceRecorder.cancel();
+			setRecordingMode("idle");
 			return;
 		}
 
 		const result = await voiceRecorder.stop();
+		setRecordingMode("idle");
 		if (!result) return;
 
 		sendAttachmentMessage({
 			type: "audio",
 			uri: result.uri,
 			duration: result.durationMillis / 1000,
+			waveform: result.waveform,
 			uploadProgress: 0,
 		});
 	};
 
+	const handlePauseForPreview = async () => {
+		const result = await voiceRecorder.stop();
+		if (!result) {
+			setRecordingMode("idle");
+			return;
+		}
+		setPreviewRecording(result);
+		setRecordingMode("preview");
+	};
+
+	const handleDiscardRecording = async () => {
+		if (recordingMode === "locked") await voiceRecorder.cancel();
+		setPreviewRecording(null);
+		setRecordingMode("idle");
+	};
+
+	const handleSendPreview = () => {
+		if (!previewRecording) return;
+		sendAttachmentMessage({
+			type: "audio",
+			uri: previewRecording.uri,
+			duration: previewRecording.durationMillis / 1000,
+			waveform: previewRecording.waveform,
+			uploadProgress: 0,
+		});
+		setPreviewRecording(null);
+		setRecordingMode("idle");
+	};
+
 	const micPanGesture = Gesture.Pan()
 		.minDistance(0)
+		.enabled(recordingMode === "idle" || recordingMode === "dragging")
 		.onBegin(() => {
 			runOnJS(handleStartRecording)();
 		})
 		.onUpdate((e) => {
 			slideX.value = Math.min(0, e.translationX);
+			slideY.value = Math.min(0, e.translationY);
 		})
 		.onEnd(() => {
 			const cancelled = slideX.value < -SLIDE_TO_CANCEL_THRESHOLD;
-			runOnJS(handleFinishRecording)(cancelled);
+			const locked = slideY.value < -SWIPE_UP_TO_LOCK_THRESHOLD;
+
+			if (locked && !cancelled) {
+				runOnJS(handleLockRecording)();
+			} else {
+				runOnJS(handleFinishRecording)(cancelled);
+			}
 			slideX.value = withSpring(0);
+			slideY.value = withSpring(0);
 		});
 
 	const micAnimatedStyle = useAnimatedStyle(() => ({
@@ -300,7 +362,7 @@ const Chat = () => {
 				</View>
 
 				<KeyboardStickyView>
-					{replyTo && !voiceRecorder.isRecording && (
+					{replyTo && recordingMode === "idle" && (
 						<ReplyPreviewBar
 							message={replyTo}
 							contactName={user?.name}
@@ -309,8 +371,23 @@ const Chat = () => {
 					)}
 
 					<View style={styles.inputBar}>
-						{voiceRecorder.isRecording ? (
-							<VoiceRecordingBar durationMillis={voiceRecorder.durationMillis} slideX={slideX} />
+						{recordingMode === "dragging" ? (
+							<VoiceRecordingBar
+								durationMillis={voiceRecorder.durationMillis}
+								waveform={voiceRecorder.waveform}
+								slideX={slideX}
+								slideY={slideY}
+							/>
+						) : recordingMode === "locked" || recordingMode === "preview" ? (
+							<HandsfreeRecordingBar
+								mode={recordingMode}
+								durationMillis={voiceRecorder.durationMillis}
+								waveform={recordingMode === "locked" ? voiceRecorder.waveform : previewRecording?.waveform || []}
+								previewUri={previewRecording?.uri}
+								onPauseForPreview={handlePauseForPreview}
+								onDiscard={handleDiscardRecording}
+								onSend={handleSendPreview}
+							/>
 						) : (
 							<>
 								<BIcon
@@ -370,31 +447,34 @@ const Chat = () => {
 						)}
 
 						{/* Morphing mic <-> send: both share the same box and cross-fade/scale
-						    based on whether there's text, instead of two separately-shown buttons. */}
-						<View style={styles.actionButtonSlot}>
-							<GestureDetector gesture={micPanGesture}>
-								<Animated.View
-									style={[
-										styles.micButton,
-										voiceRecorder.isRecording && styles.micButtonActive,
-										micAnimatedStyle,
-										micMorphStyle,
-									]}
-									pointerEvents={hasText ? "none" : "auto"}
-								>
-									<Ionicons name="mic" size={20} color={voiceRecorder.isRecording ? "#fff" : "#818181"} />
-								</Animated.View>
-							</GestureDetector>
+						    based on whether there's text, instead of two separately-shown buttons.
+						    Hidden once locked/preview — HandsfreeRecordingBar has its own send button. */}
+						{(recordingMode === "idle" || recordingMode === "dragging") && (
+							<View style={styles.actionButtonSlot}>
+								<GestureDetector gesture={micPanGesture}>
+									<Animated.View
+										style={[
+											styles.micButton,
+											voiceRecorder.isRecording && styles.micButtonActive,
+											micAnimatedStyle,
+											micMorphStyle,
+										]}
+										pointerEvents={hasText ? "none" : "auto"}
+									>
+										<Ionicons name="mic" size={20} color={voiceRecorder.isRecording ? "#fff" : "#818181"} />
+									</Animated.View>
+								</GestureDetector>
 
-							<Animated.View
-								style={[styles.sendButton, sendMorphStyle, StyleSheet.absoluteFill]}
-								pointerEvents={hasText ? "auto" : "none"}
-							>
-								<TouchableOpacity style={styles.sendButtonTouchable} onPress={handleSend}>
-									<Ionicons name="send" size={22} color="#fff" />
-								</TouchableOpacity>
-							</Animated.View>
-						</View>
+								<Animated.View
+									style={[styles.sendButton, sendMorphStyle, StyleSheet.absoluteFill]}
+									pointerEvents={hasText ? "auto" : "none"}
+								>
+									<TouchableOpacity style={styles.sendButtonTouchable} onPress={handleSend}>
+										<Ionicons name="send" size={22} color="#fff" />
+									</TouchableOpacity>
+								</Animated.View>
+							</View>
+						)}
 					</View>
 
 					{showEmojiPicker && <EmojiPicker onSelectEmoji={handleSelectEmoji} />}

@@ -148,6 +148,7 @@ const MessageBubble = ({
 						{message.attachment && (
 							<AttachmentContent
 								messageId={message.id}
+								conversationId={message.conversationId}
 								attachment={message.attachment}
 								isSender={isSender}
 								onPressImage={onPressImage}
