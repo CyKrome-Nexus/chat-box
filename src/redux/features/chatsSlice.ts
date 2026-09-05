@@ -1,11 +1,20 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { IChatRibbon } from "@/src/interfaces/list-interface";
+import { IChatRibbon, IGroupParticipant, TGroupRole } from "@/src/interfaces/list-interface";
 
 interface ChatsState {
     chats: IChatRibbon[];
 }
 
 export const MAX_PINNED_CHATS = 5;
+export const MAX_GROUP_PARTICIPANTS = 1024;
+
+/** Assigns a stable, visually distinct color per participant for group bubble usernames. */
+export const PARTICIPANT_COLORS = [
+    "#E74C3C", "#8E44AD", "#2E86C1", "#1ABC9C", "#F39C12", "#D35400", "#27AE60", "#2980B9",
+];
+export const colorForParticipant = (index: number) => PARTICIPANT_COLORS[index % PARTICIPANT_COLORS.length];
+
+const generateInviteCode = () => Math.random().toString(36).slice(2, 10).toUpperCase();
 
 const initialState: ChatsState = {
     chats: [
@@ -109,6 +118,106 @@ export const chatsSlice = createSlice({
             const chat = state.chats.find((c) => c.id === action.payload.chatId);
             if (chat) chat.disappearingTimer = action.payload.timer;
         },
+        /** Group creation — see docs/architecture/groups.md. */
+        createGroup: (
+            state,
+            action: PayloadAction<{
+                id: string;
+                name: string;
+                avatar: { url: string };
+                description?: string;
+                participants: IGroupParticipant[];
+            }>
+        ) => {
+            const { id, name, avatar, description, participants } = action.payload;
+            state.chats.push({
+                id,
+                name,
+                avatar,
+                isGroup: true,
+                groupDescription: description,
+                participants: participants.slice(0, MAX_GROUP_PARTICIPANTS),
+                groupSettings: {
+                    whoCanSendMessages: "all",
+                    whoCanEditInfo: "all",
+                    requireAdminApproval: false,
+                },
+                inviteCode: generateInviteCode(),
+                lastStatus: "Just now",
+                notificationCount: 0,
+            });
+        },
+        updateGroupInfo: (
+            state,
+            action: PayloadAction<{ chatId: string; name?: string; description?: string; avatarUrl?: string }>
+        ) => {
+            const chat = state.chats.find((c) => c.id === action.payload.chatId);
+            if (!chat) return;
+            if (action.payload.name) chat.name = action.payload.name;
+            if (action.payload.description !== undefined) chat.groupDescription = action.payload.description;
+            if (action.payload.avatarUrl) chat.avatar = { url: action.payload.avatarUrl };
+        },
+        addGroupParticipants: (
+            state,
+            action: PayloadAction<{ chatId: string; participants: IGroupParticipant[] }>
+        ) => {
+            const chat = state.chats.find((c) => c.id === action.payload.chatId);
+            if (!chat?.participants) return;
+            const existingIds = new Set(chat.participants.map((p) => p.id));
+            const toAdd = action.payload.participants.filter((p) => !existingIds.has(p.id));
+            chat.participants = chat.participants.concat(toAdd).slice(0, MAX_GROUP_PARTICIPANTS);
+        },
+        removeGroupParticipant: (state, action: PayloadAction<{ chatId: string; participantId: string }>) => {
+            const chat = state.chats.find((c) => c.id === action.payload.chatId);
+            if (!chat?.participants) return;
+            chat.participants = chat.participants.filter((p) => p.id !== action.payload.participantId);
+        },
+        setParticipantRole: (
+            state,
+            action: PayloadAction<{ chatId: string; participantId: string; role: TGroupRole }>
+        ) => {
+            const chat = state.chats.find((c) => c.id === action.payload.chatId);
+            const participant = chat?.participants?.find((p) => p.id === action.payload.participantId);
+            if (participant) participant.role = action.payload.role;
+        },
+        setGroupSetting: (
+            state,
+            action: PayloadAction<{
+                chatId: string;
+                key: keyof NonNullable<IChatRibbon["groupSettings"]>;
+                value: boolean | "all" | "admins";
+            }>
+        ) => {
+            const chat = state.chats.find((c) => c.id === action.payload.chatId);
+            if (chat?.groupSettings) (chat.groupSettings as any)[action.payload.key] = action.payload.value;
+        },
+        regenerateInviteCode: (state, action: PayloadAction<string>) => {
+            const chat = state.chats.find((c) => c.id === action.payload);
+            if (chat) chat.inviteCode = generateInviteCode();
+        },
+        /** Deep-link join via /join/[code] — adds "me" as a member. See groups.md. */
+        joinGroupByInviteCode: (state, action: PayloadAction<{ inviteCode: string; me: IGroupParticipant }>) => {
+            const chat = state.chats.find((c) => c.inviteCode === action.payload.inviteCode);
+            if (!chat?.participants) return;
+            if (!chat.participants.some((p) => p.id === action.payload.me.id)) {
+                chat.participants.push(action.payload.me);
+            }
+        },
+        /** Broadcast List — a fan-out send target, not a real group. See groups.md. */
+        createBroadcastList: (
+            state,
+            action: PayloadAction<{ id: string; name: string; recipientIds: string[] }>
+        ) => {
+            state.chats.push({
+                id: action.payload.id,
+                name: action.payload.name,
+                avatar: { url: "" },
+                isBroadcast: true,
+                broadcastRecipientIds: action.payload.recipientIds,
+                lastStatus: "Just now",
+                notificationCount: 0,
+            });
+        },
         /** Replaces the list with what's in the local database on startup. */
         hydrateChats: (state, action: PayloadAction<IChatRibbon[]>) => {
             state.chats = action.payload;
@@ -142,6 +251,15 @@ export const {
     markChatUnread,
     unarchiveChat,
     setDisappearingTimer,
+    createGroup,
+    updateGroupInfo,
+    addGroupParticipants,
+    removeGroupParticipant,
+    setParticipantRole,
+    setGroupSetting,
+    regenerateInviteCode,
+    joinGroupByInviteCode,
+    createBroadcastList,
     hydrateChats,
 } = chatsSlice.actions;
 export default chatsSlice.reducer;

@@ -42,6 +42,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Global & In-Chat Search](./architecture/search.md) | SQLite FTS5 message index with a LIKE fallback, full-screen global search with media-type filter chips and highlighted matches, in-chat search with a stepper and jump-to-match. |
 | [Biometric App Lock & Privacy Controls](./architecture/security-privacy.md) | Face ID/Touch ID app lock with configurable auto-lock timeout and app-switcher hiding, granular Everyone/Contacts/Nobody privacy toggles, wired-up read receipts, and per-chat disappearing messages with real SQLite purge. |
 | [Ephemeral Stories & Status](./architecture/stories.md) | 24-hour status updates (photo/video/text) with a viewed/unviewed ring carousel, a segmented-progress story player with tap/hold/swipe-up-to-reply, viewer analytics, and auto-expiry. |
+| [Groups, Admin Permissions, Invite Links & Broadcasts](./architecture/groups.md) | Multi-step group creation, color-coded sender names, @mention autocomplete, admin promote/demote/remove, send/edit permission gating, working invite-link QR deep links, and broadcast list fan-out sending. |
 
 ---
 

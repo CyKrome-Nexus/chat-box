@@ -51,6 +51,10 @@ export interface IMessage {
     deletedForEveryone?: boolean;
     /** Disappearing Messages — set when composed/received in a conversation with an active timer. See security-privacy.md. */
     expiresAt?: number;
+    /** Group chats only — identifies which participant sent a "receiver"-type message. See groups.md. */
+    senderId?: string;
+    senderName?: string;
+    senderColor?: string;
     /**
      * A quote of the message this one is replying to (swipe-to-reply, or the
      * long-press "Reply" action — see docs/architecture/micro-animations.md
