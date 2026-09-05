@@ -91,7 +91,8 @@
           "photosPermission": "Chatbox needs access to your photos to save media from chats.",
           "savePhotosPermission": "Chatbox needs permission to save photos and videos to your device."
         }
-      ]
+      ],
+      "./plugins/withEncryptedPush.js"
     ]
   }
 }

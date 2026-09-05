@@ -12,6 +12,7 @@ import { composeMessage } from "@/src/redux/features/messagesSlice";
 import { markChatRead } from "@/src/redux/features/chatsSlice";
 import { realtimeSocketClient } from "@/src/lib/realtime/socketClient";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
+import { encryptForConversation } from "@/src/lib/crypto/sessionManager";
 
 /**
  * Registers the message notification channel/category once, and wires the
@@ -69,12 +70,23 @@ export const useMessageNotifications = () => {
                         timestamp: Date.now(),
                     };
                     dispatch(composeMessage({ conversationId, message, queued: false }));
-                    realtimeSocketClient.emit("message:send", {
-                        conversationId,
-                        messageId: message.id,
-                        text,
-                        senderId: "me",
-                        timestamp: message.timestamp,
+                    // The reply is E2EE-encrypted the same way a normal
+                    // send is (see e2ee-crypto.md) — only the wire payload
+                    // is ciphertext, not this locally-composed plaintext
+                    // copy. This is the JS-reachable half of the ticket's
+                    // "reply from the notification encrypts and sends
+                    // cleanly" requirement; see encrypted-push.md for why a
+                    // *true* NSE/foreground-service-level reply-encrypt
+                    // (before the JS engine even loads) isn't achievable in
+                    // this environment.
+                    encryptForConversation(conversationId, text).then((envelope) => {
+                        realtimeSocketClient.emit("message:send", {
+                            conversationId,
+                            messageId: message.id,
+                            text: envelope,
+                            senderId: "me",
+                            timestamp: message.timestamp,
+                        });
                     });
                 }
                 await notifee.cancelNotification(detail.notification.id);
