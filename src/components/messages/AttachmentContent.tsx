@@ -2,6 +2,7 @@ import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-
 import { Ionicons } from "@expo/vector-icons";
 
 import { IAttachment } from "@/src/interfaces/message-interface";
+import AudioMessageBubble from "./AudioMessageBubble";
 
 const formatFileSize = (bytes?: number) => {
 	if (!bytes) return "";
@@ -10,14 +11,20 @@ const formatFileSize = (bytes?: number) => {
 };
 
 const AttachmentContent = ({
+	messageId,
 	attachment,
 	isSender,
 	onPressImage,
 }: {
+	messageId: string;
 	attachment: IAttachment;
 	isSender: boolean;
 	onPressImage?: (uri: string) => void;
 }) => {
+	if (attachment.type === "audio") {
+		return <AudioMessageBubble messageId={messageId} attachment={attachment} isSender={isSender} />;
+	}
+
 	const isUploading = (attachment.uploadProgress ?? 100) < 100;
 
 	if (attachment.type === "image" || attachment.type === "video") {
