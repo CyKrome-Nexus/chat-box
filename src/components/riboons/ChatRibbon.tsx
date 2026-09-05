@@ -4,23 +4,36 @@ import {
 	Text,
 	TouchableOpacity,
 	Dimensions,
+	Alert,
 } from "react-native";
 import Animated, {
 	useSharedValue,
 	useAnimatedStyle,
 	withSpring,
+	LinearTransition,
+	SlideOutRight,
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Ionicons } from "@expo/vector-icons";
+import { useDispatch } from "react-redux";
+import { router } from "expo-router";
+
 import BIcon from "../buttons/BIcon";
 import { bin, notificationBell } from "@/src/constants/svgs/icons";
 import Avatar from "../images/Avatar";
-import { router } from "expo-router";
+import { IChatRibbon } from "@/src/interfaces/list-interface";
+import { deleteChat, toggleMuteChat } from "@/src/redux/features/chatsSlice";
 
 const BUTTON_WIDTH = Dimensions.get("window").width * 0.3;
 
-const ChatRibbon = ({ content }: { content: any }) => {
+const ChatRibbon = ({ content }: { content: IChatRibbon }) => {
+	const dispatch = useDispatch();
 	const translateX = useSharedValue(0);
 	const offsetX = useSharedValue(0);
+
+	const closeSwipe = () => {
+		translateX.value = withSpring(0);
+	};
 
 	// Buttons slide from right into view as ribbon slides left
 	const buttonsAnimated = useAnimatedStyle(() => ({
@@ -49,8 +62,46 @@ const ChatRibbon = ({ content }: { content: any }) => {
 			}
 		});
 
+	const handleToggleMute = () => {
+		dispatch(toggleMuteChat(content.id));
+		closeSwipe();
+	};
+
+	const handleDelete = () => {
+		Alert.alert(
+			"Delete conversation",
+			`Delete conversation with ${content.name}?`,
+			[
+				{ text: "Cancel", style: "cancel", onPress: closeSwipe },
+				{
+					text: "Delete",
+					style: "destructive",
+					onPress: () => dispatch(deleteChat(content.id)),
+				},
+			]
+		);
+	};
+
+	const handlePressRibbon = () => {
+		if (translateX.value !== 0) {
+			closeSwipe();
+			return;
+		}
+
+		router.push({
+			pathname: `/messages/Chat`,
+			params: {
+				user: JSON.stringify(content),
+			},
+		});
+	};
+
 	return (
-		<View style={styles.row}>
+		<Animated.View
+			style={styles.row}
+			layout={LinearTransition.duration(200)}
+			exiting={SlideOutRight.duration(250)}
+		>
 			{/* Hidden buttons sliding in/out */}
 			<Animated.View style={[styles.hiddenButtons, buttonsAnimated]}>
 				<BIcon
@@ -59,6 +110,7 @@ const ChatRibbon = ({ content }: { content: any }) => {
 					height={45}
 					iconHeight={45}
 					iconWidth={45}
+					onPress={handleToggleMute}
 				/>
 				<BIcon
 					svg={bin}
@@ -66,31 +118,29 @@ const ChatRibbon = ({ content }: { content: any }) => {
 					height={45}
 					iconHeight={45}
 					iconWidth={45}
+					onPress={handleDelete}
 				/>
 			</Animated.View>
 
 			{/* Swipeable ribbon content */}
 			<GestureDetector gesture={gesture}>
 				<Animated.View style={[styles.ribbon, ribbonAnimated]}>
-					<TouchableOpacity
-						style={styles.container}
-						onPress={() => router.push({
-							pathname: `/messages/Chat`,
-							params: {
-								user: JSON.stringify(content)
-							}
-						})}
-					>
+					<TouchableOpacity style={styles.container} onPress={handlePressRibbon}>
 						<View style={styles.content}>
 							<Avatar
 								data={content?.avatar}
-								showStatus={content?.status}
+								showStatus={content?.status === "ONLINE"}
 								isWhite={true}
 							/>
 							<View style={styles.mainContent}>
-								<Text style={{ fontSize: 22, fontWeight: "bold" }}>
-									{content?.name}
-								</Text>
+								<View style={styles.nameRow}>
+									<Text style={{ fontSize: 22, fontWeight: "bold" }}>
+										{content?.name}
+									</Text>
+									{content?.muted && (
+										<Ionicons name="notifications-off-outline" size={14} color="#797C7B" />
+									)}
+								</View>
 								<Text style={{ fontSize: 12, color: "#797C7B" }}>
 									{content?.lastMessage}
 								</Text>
@@ -111,7 +161,7 @@ const ChatRibbon = ({ content }: { content: any }) => {
 					</TouchableOpacity>
 				</Animated.View>
 			</GestureDetector>
-		</View>
+		</Animated.View>
 	);
 };
 
@@ -169,6 +219,11 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		flex: 1,
 		gap: 1,
+	},
+	nameRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
 	},
 	statusContent: {
 		flex: 0.28,

@@ -40,6 +40,23 @@ gotcha/fix for inverted chat lists, not specific to this codebase. Display data 
 `[...messages, dateSeparators].sort(ascending).reverse()` so index 0 is the newest message, which
 `inverted` places at the bottom of the screen.
 
+## Chat List Swipe Actions
+
+`ChatRibbon` reveals a mute (bell) and delete (bin) button when swiped left, backed by
+`src/redux/features/chatsSlice.ts` (`state.chats.chats`, moved here from the previously-duplicated
+mock arrays in `messages.tsx`/`ListDrawer.tsx` — `IChatRibbon` now requires a stable `id` so these
+actions can target the right conversation).
+
+- **Mute**: `toggleMuteChat(id)` flips `IChatRibbon.muted`; `ChatRibbon` shows a small
+  "notifications-off" glyph next to the name when muted, and the swipe snaps back afterward.
+- **Delete**: `bin` shows a native `Alert.alert` confirmation ("Delete conversation with
+  [Name]?"). Confirming dispatches `deleteChat(id)`; the ribbon's root is an `Animated.View` with
+  `exiting={SlideOutRight}` and the list's other rows use `layout={LinearTransition}`, so the
+  removed row slides out and the rest of the list collapses upward smoothly instead of just
+  disappearing.
+- **Tap-to-close**: tapping the ribbon while it's swiped open (`translateX !== 0`) snaps it back
+  to closed instead of navigating into the chat; only a genuine tap while closed opens it.
+
 ## Root Reducer Note
 
 `src/redux/store/store.ts` composes `authReducer` (mounted at `state.user`) and `messagesReducer`

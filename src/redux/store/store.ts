@@ -4,11 +4,13 @@ import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import authReducer from "../features/userSlice";
 import messagesReducer from "../features/messagesSlice";
 import connectionReducer from "../features/connectionSlice";
+import chatsReducer from "../features/chatsSlice";
 
 const rootReducer = combineReducers({
    user: authReducer,
    messages: messagesReducer,
    connection: connectionReducer,
+   chats: chatsReducer,
 });
 
 export const store = configureStore({
