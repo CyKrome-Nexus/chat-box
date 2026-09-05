@@ -1,7 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
 	View,
-	Text,
 	StyleSheet,
 	Platform,
 	FlatList,
@@ -11,20 +10,97 @@ import {
 	Keyboard,
 	KeyboardEvent,
 } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { useDispatch, useSelector } from "react-redux";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+
 import BIcon from "@/src/components/buttons/BIcon";
 import { clip } from "@/src/constants/svgs/icons";
+import MessageBubble from "@/src/components/messages/MessageBubble";
+import DateSeparator, { getDateLabel } from "@/src/components/messages/DateSeparator";
+import EmptyChatState from "@/src/components/messages/EmptyChatState";
+import { sendMessage, seedConversation } from "@/src/redux/features/messagesSlice";
+import { IMessage } from "@/src/interfaces/message-interface";
+import { IChatRibbon } from "@/src/interfaces/list-interface";
 
-const DUMMY_MESSAGES = [
-	{ id: "1", type: "sender" },
-	{ id: "2", type: "receiver" },
-	{ id: "3", type: "receiver" },
-	{ id: "4", type: "audio" },
-];
+const MIN_INPUT_HEIGHT = 36;
+const MAX_INPUT_HEIGHT = 120;
+
+type TDisplayItem =
+	| { kind: "separator"; id: string; label: string }
+	| { kind: "message"; id: string; message: IMessage };
+
+const buildDisplayData = (messages: IMessage[]): TDisplayItem[] => {
+	const ascending = [...messages].sort((a, b) => a.timestamp - b.timestamp);
+	const withSeparators: TDisplayItem[] = [];
+	let lastLabel: string | null = null;
+
+	for (const message of ascending) {
+		const label = getDateLabel(message.timestamp);
+		if (label !== lastLabel) {
+			withSeparators.push({ kind: "separator", id: `sep-${label}`, label });
+			lastLabel = label;
+		}
+		withSeparators.push({ kind: "message", id: message.id, message });
+	}
+
+	return withSeparators.reverse();
+};
 
 const Chat = () => {
+	const params = useLocalSearchParams();
+	const user: (IChatRibbon & { id?: string }) | null = params.user
+		? JSON.parse(params.user as string)
+		: null;
+
+	const conversationId = user?.id || user?.name || "unknown";
+
+	const dispatch = useDispatch();
+	const messages = useSelector(
+		(state: any) => state.messages.byConversation[conversationId] as IMessage[] | undefined
+	) || [];
+
 	const [keyboardOffset, setKeyboardOffset] = useState(0);
+	const [text, setText] = useState("");
+	const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
 	const flatListRef = useRef<FlatList>(null);
+
+	// Seed a small, realistic backlog for existing conversations (identified by
+	// having a preview `lastMessage`) so the timeline/bubble UI has something to
+	// show; brand-new conversations stay empty and render EmptyChatState.
+	useEffect(() => {
+		if (!user?.lastMessage) return;
+
+		const yesterday = new Date();
+		yesterday.setDate(yesterday.getDate() - 1);
+		yesterday.setHours(18, 30, 0, 0);
+
+		const today = new Date();
+		today.setHours(today.getHours() - 1, 0, 0, 0);
+
+		dispatch(
+			seedConversation({
+				conversationId,
+				messages: [
+					{
+						id: `${conversationId}-seed-1`,
+						conversationId,
+						text: `Hey! Nice to chat with you 👋`,
+						type: "receiver",
+						timestamp: yesterday.getTime(),
+					},
+					{
+						id: `${conversationId}-seed-2`,
+						conversationId,
+						text: user.lastMessage,
+						type: "receiver",
+						timestamp: today.getTime(),
+					},
+				],
+			})
+		);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [conversationId]);
 
 	useEffect(() => {
 		const showEvent =
@@ -43,36 +119,56 @@ const Chat = () => {
 		};
 	}, []);
 
-	const renderMessage = ({ item }: any) => (
-		<View style={styles.messageBubblePlaceholder}>
-			<Text
-				style={styles.placeholderText}
-			>{`<MessageBubble type="${item.type}" />`}</Text>
+	const displayData = useMemo(() => buildDisplayData(messages), [messages]);
+
+	const handleSend = () => {
+		if (!text.trim()) return;
+
+		dispatch(sendMessage({ conversationId, text }));
+		setText("");
+		setInputHeight(MIN_INPUT_HEIGHT);
+
+		requestAnimationFrame(() => {
+			flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+		});
+	};
+
+	const renderItem = ({ item }: { item: TDisplayItem }) => (
+		<View style={styles.invertedItem}>
+			{item.kind === "separator" ? (
+				<DateSeparator label={item.label} />
+			) : (
+				<MessageBubble message={item.message} avatar={user?.avatar} />
+			)}
 		</View>
 	);
 
 	return (
 		<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 			<View style={styles.container}>
-				<FlatList
-					ref={flatListRef}
-					data={DUMMY_MESSAGES}
-					renderItem={renderMessage}
-					keyExtractor={(item) => item.id}
-					contentContainerStyle={[
-						styles.messageList,
-						{ paddingBottom: 80 + keyboardOffset }, // leave space for keyboard + input
-					]}
-					showsVerticalScrollIndicator={false}
-					keyboardShouldPersistTaps="handled"
-					inverted
-				/>
+				{displayData.length === 0 ? (
+					<EmptyChatState name={user?.name} />
+				) : (
+					<FlatList
+						ref={flatListRef}
+						data={displayData}
+						renderItem={renderItem}
+						keyExtractor={(item) => item.id}
+						contentContainerStyle={[
+							styles.messageList,
+							{ paddingBottom: 80 + keyboardOffset },
+						]}
+						showsVerticalScrollIndicator={false}
+						keyboardShouldPersistTaps="handled"
+						inverted
+					/>
+				)}
 
 				<View
 					style={[
 						styles.inputBar,
 						{
-							bottom: keyboardOffset, // dynamically move up with keyboard
+							bottom: keyboardOffset,
 						},
 					]}
 				>
@@ -84,11 +180,22 @@ const Chat = () => {
 					/>
 					<View style={styles.inputContainer}>
 						<TextInput
-							style={styles.textInput}
+							style={[styles.textInput, { height: inputHeight }]}
 							placeholder="Type your message"
 							placeholderTextColor="#797C7B"
 							returnKeyType="send"
 							blurOnSubmit={false}
+							value={text}
+							onChangeText={setText}
+							multiline
+							onContentSizeChange={(e) => {
+								const nextHeight = Math.min(
+									MAX_INPUT_HEIGHT,
+									Math.max(MIN_INPUT_HEIGHT, e.nativeEvent.contentSize.height)
+								);
+								setInputHeight(nextHeight);
+							}}
+							onSubmitEditing={handleSend}
 							onFocus={() => {
 								requestAnimationFrame(() => {
 									flatListRef.current?.scrollToOffset({
@@ -106,7 +213,11 @@ const Chat = () => {
 							color="#818181"
 						/>
 					</TouchableOpacity>
-					<TouchableOpacity style={styles.sendButton}>
+					<TouchableOpacity
+						style={[styles.sendButton, !text.trim() && styles.sendButtonDisabled]}
+						onPress={handleSend}
+						disabled={!text.trim()}
+					>
 						<Ionicons name="send" size={22} color="#fff" />
 					</TouchableOpacity>
 				</View>
@@ -124,15 +235,8 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingTop: 16,
 	},
-	messageBubblePlaceholder: {
-		paddingVertical: 8,
-		alignItems: "center",
-		opacity: 0.2,
-	},
-	placeholderText: {
-		fontStyle: "italic",
-		color: "#888",
-		fontSize: 16,
+	invertedItem: {
+		transform: [{ scaleY: -1 }],
 	},
 	inputBar: {
 		position: "absolute",
@@ -167,6 +271,9 @@ const styles = StyleSheet.create({
 		height: 38,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	sendButtonDisabled: {
+		opacity: 0.5,
 	},
 });
 

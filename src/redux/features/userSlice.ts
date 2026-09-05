@@ -4,17 +4,15 @@ type user = {
 	_id: string;
 	name: string;
 	username: string;
-};
+} | null;
 
-const initialState: { user?: user } = {};
+const initialState = null as user;
 
 export const authSlice = createSlice({
-	name: "auth",
+	name: "user",
 	initialState,
 	reducers: {
-		updateUser: (state, action): void => {
-			state.user = action.payload;
-		},
+		updateUser: (_state, action): user => action.payload,
 	},
 });
 
