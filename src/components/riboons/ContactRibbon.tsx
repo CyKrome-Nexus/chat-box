@@ -3,19 +3,41 @@ import {
 	View,
 	Text,
 	TouchableOpacity,
-	Dimensions,
 } from "react-native";
 import Animated from "react-native-reanimated";
+import { router } from "expo-router";
+
 import Avatar from "../images/Avatar";
 import { IContactRibbon } from "@/src/interfaces/list-interface";
 
+const ContactRibbon = ({
+	content,
+	onLongPressContact,
+}: {
+	content: IContactRibbon;
+	onLongPressContact?: (contact: IContactRibbon) => void;
+}) => {
+	const handlePress = () => {
+		if (!content.isRegistered) {
+			onLongPressContact?.(content);
+			return;
+		}
 
-const ContactRibbon = ({ content }: { content: IContactRibbon }) => {
+		router.push({
+			pathname: "/messages/Chat",
+			params: { user: JSON.stringify(content) },
+		});
+	};
+
 	return (
 		<View style={styles.row}>
 			{/* Swipeable ribbon content */}
 			<Animated.View style={[styles.ribbon]}>
-				<TouchableOpacity style={styles.container}>
+				<TouchableOpacity
+					style={styles.container}
+					onPress={handlePress}
+					onLongPress={() => onLongPressContact?.(content)}
+				>
 					<View style={styles.content}>
 						<Avatar data={content?.avatar} isWhite={true} />
 						<View style={styles.mainContent}>
@@ -23,7 +45,9 @@ const ContactRibbon = ({ content }: { content: IContactRibbon }) => {
 								{content?.name}
 							</Text>
 							<Text style={{ fontSize: 12, color: "#797C7B" }}>
-								{content?.about}
+								{content?.isRegistered === false
+									? "Not on Chatbox"
+									: content?.about || content?.phoneNumber}
 							</Text>
 						</View>
 					</View>

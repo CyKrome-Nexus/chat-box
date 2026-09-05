@@ -16,8 +16,9 @@ import {
 } from "@/src/constants/svgs/icons";
 import BIcon from "@/src/components/buttons/BIcon";
 import Avatar from "@/src/components/images/Avatar";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { IUser } from "@/src/interfaces/user-interface";
+import { setShowAddContactModal } from "@/src/redux/features/contactsSlice";
 
 export default function TabLayout() {
 	const user = useSelector((state: { user: IUser | null }) => state.user);
@@ -115,19 +116,23 @@ export default function TabLayout() {
 					tabBarIcon: ({ focused }) => (
 						<IconSVG svg={contact} includeBorder={false} focused={focused} />
 					),
-					headerRight: () => (
-						<>
-							<View style={{ marginRight: 30 }}>
-								<BIcon
-									svg={addContact}
-									width={45}
-									height={45}
-									iconWidth={22}
-									iconHeight={22}
-								/>
-							</View>
-						</>
-					),
+					headerRight: () => {
+						const dispatch = useDispatch();
+						return (
+							<>
+								<View style={{ marginRight: 30 }}>
+									<BIcon
+										svg={addContact}
+										width={45}
+										height={45}
+										iconWidth={22}
+										iconHeight={22}
+										onPress={() => dispatch(setShowAddContactModal(true))}
+									/>
+								</View>
+							</>
+						);
+					},
 					tabBarActiveTintColor: Colors.focused,
 				}}
 			/>

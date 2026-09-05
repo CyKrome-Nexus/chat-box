@@ -36,7 +36,11 @@ export interface ICallList {
 
 // Contacts
 export interface IContactRibbon extends IRibbonParent {
+    id: string
     about?: string
+    phoneNumber?: string
+    isRegistered?: boolean
+    source?: "device" | "manual"
 }
 
 export interface IContactList {
