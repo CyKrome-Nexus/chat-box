@@ -61,6 +61,7 @@ export default function TabLayout() {
 							height={45}
 							iconWidth={22}
 							iconHeight={22}
+							onPress={() => router.push("/search")}
 						/>
 					</View>
 				),

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useSelector } from "react-redux";
+import { Ionicons } from "@expo/vector-icons";
 
 import IconSVG from "@/src/components/images/IconSVG";
 import { backArrow, camera, phone } from "@/src/constants/svgs/icons";
@@ -78,6 +79,12 @@ const MessagesLayout = () => {
 												<Text style={{ fontSize: 12}}>Active Now</Text>
 											</>}
 										</View>
+									</TouchableOpacity>
+									<TouchableOpacity
+										style={{ marginHorizontal: 6 }}
+										onPress={() => router.setParams({ search: "1" })}
+									>
+										<Ionicons name="search" size={22} color="#000" />
 									</TouchableOpacity>
 									<BIcon
 										svg={phone}

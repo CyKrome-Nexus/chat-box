@@ -6,7 +6,13 @@ export const upsertMessage = async (conversationId: string, message: IMessage) =
     await db.runAsync(
         `INSERT INTO messages (id, conversation_id, direction, content_type, content, media_url, media_size, duration, status, is_deleted, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
-         ON CONFLICT(id) DO UPDATE SET status = excluded.status`,
+         ON CONFLICT(id) DO UPDATE SET
+            content = excluded.content,
+            content_type = excluded.content_type,
+            media_url = excluded.media_url,
+            media_size = excluded.media_size,
+            duration = excluded.duration,
+            status = excluded.status`,
         [
             message.id,
             conversationId,
@@ -47,6 +53,11 @@ export const listAllMessages = async (): Promise<Record<string, IMessage[]>> => 
 export const clearAllMessagesFromDb = async () => {
     const db = await getDatabase();
     await db.runAsync(`DELETE FROM messages`);
+};
+
+export const deleteMessageFromDb = async (messageId: string) => {
+    const db = await getDatabase();
+    await db.runAsync(`UPDATE messages SET is_deleted = 1 WHERE id = ?`, [messageId]);
 };
 
 const rowToMessage = (row: any): IMessage => ({

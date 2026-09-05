@@ -39,6 +39,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Media Lightbox, Document Viewer & Shared Gallery](./architecture/media-gallery.md) | Swipeable pinch-zoom lightbox with share/save/forward/delete, in-app PDF preview, Contact Info entry point, tabbed shared-media gallery with OG link previews. |
 | [Message Actions Menu](./architecture/message-actions.md) | Long-press reaction pill + action menu (reply/copy/forward/edit/star/delete/info), jump-to-original quoted replies, edit window, delete-for-everyone tombstones, starred messages. |
 | [Chat Organization & Management](./architecture/chat-organization.md) | Pinning (max 5), swipe-to-archive with a collapsible archived section, unread filter pills + tab badge, mark as read/unread, and local draft auto-save. |
+| [Global & In-Chat Search](./architecture/search.md) | SQLite FTS5 message index with a LIKE fallback, full-screen global search with media-type filter chips and highlighted matches, in-chat search with a stepper and jump-to-match. |
 
 ---
 
