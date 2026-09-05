@@ -20,8 +20,11 @@ import { clip } from "@/src/constants/svgs/icons";
 import MessageBubble from "@/src/components/messages/MessageBubble";
 import DateSeparator, { getDateLabel } from "@/src/components/messages/DateSeparator";
 import EmptyChatState from "@/src/components/messages/EmptyChatState";
-import { seedConversation } from "@/src/redux/features/messagesSlice";
+import AttachmentSheet, { TAttachmentOption } from "@/src/components/messages/AttachmentSheet";
+import MediaViewerModal from "@/src/components/messages/MediaViewerModal";
+import { composeMessage, seedConversation, updateAttachmentProgress } from "@/src/redux/features/messagesSlice";
 import { useChatRealtime } from "@/src/hooks/useChatRealtime";
+import { useAttachmentPicker } from "@/src/hooks/useAttachmentPicker";
 import { IMessage } from "@/src/interfaces/message-interface";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
 
@@ -72,7 +75,10 @@ const Chat = () => {
 	const [keyboardOffset, setKeyboardOffset] = useState(0);
 	const [text, setText] = useState("");
 	const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
+	const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
+	const [viewerUri, setViewerUri] = useState<string | undefined>();
 	const flatListRef = useRef<FlatList>(null);
+	const { pickAttachment } = useAttachmentPicker();
 
 	// Seed a small, realistic backlog for existing conversations (identified by
 	// having a preview `lastMessage`) so the timeline/bubble UI has something to
@@ -142,6 +148,36 @@ const Chat = () => {
 		});
 	};
 
+	const handleAttachmentOption = async (option: TAttachmentOption) => {
+		const attachment = await pickAttachment(option);
+		if (!attachment) return;
+
+		const message: IMessage = {
+			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+			conversationId,
+			text: "",
+			type: "sender",
+			timestamp: Date.now(),
+		};
+
+		dispatch(composeMessage({ conversationId, message: { ...message, attachment }, queued: false }));
+
+		requestAnimationFrame(() => {
+			flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+		});
+
+		// Simulate an upload progress bar for media/documents — there is no
+		// backend/storage service in this repo yet to upload to for real.
+		if (attachment.uploadProgress != null) {
+			let progress = 0;
+			const interval = setInterval(() => {
+				progress = Math.min(100, progress + 20);
+				dispatch(updateAttachmentProgress({ conversationId, messageId: message.id, progress }));
+				if (progress >= 100) clearInterval(interval);
+			}, 250);
+		}
+	};
+
 	const isTyping = typingUsers.length > 0;
 
 	const renderItem = ({ item }: { item: TDisplayItem }) => (
@@ -149,7 +185,11 @@ const Chat = () => {
 			{item.kind === "separator" ? (
 				<DateSeparator label={item.label} />
 			) : (
-				<MessageBubble message={item.message} avatar={user?.avatar} />
+				<MessageBubble
+					message={item.message}
+					avatar={user?.avatar}
+					onPressImage={setViewerUri}
+				/>
 			)}
 		</View>
 	);
@@ -200,6 +240,7 @@ const Chat = () => {
 						svg={clip}
 						height={20}
 						width={20}
+						onPress={() => setShowAttachmentSheet(true)}
 					/>
 					<View style={styles.inputContainer}>
 						<TextInput
@@ -247,6 +288,17 @@ const Chat = () => {
 						<Ionicons name="send" size={22} color="#fff" />
 					</TouchableOpacity>
 				</View>
+
+				<AttachmentSheet
+					visible={showAttachmentSheet}
+					onClose={() => setShowAttachmentSheet(false)}
+					onSelect={handleAttachmentOption}
+				/>
+				<MediaViewerModal
+					uri={viewerUri}
+					visible={!!viewerUri}
+					onClose={() => setViewerUri(undefined)}
+				/>
 			</View>
 		</TouchableWithoutFeedback>
 	);

@@ -29,6 +29,22 @@
 		"web": {
 			"favicon": "./assets/favicon.png"
 		},
-		"plugins": ["expo-router", "expo-font"]
+		"plugins": [
+			"expo-router",
+			"expo-font",
+			[
+				"expo-image-picker",
+				{
+					"photosPermission": "Chatbox needs access to your photos to share images and videos in chats.",
+					"cameraPermission": "Chatbox needs access to your camera to take and share photos and videos in chats."
+				}
+			],
+			[
+				"expo-location",
+				{
+					"locationWhenInUsePermission": "Chatbox needs your location to let you share it in a chat."
+				}
+			]
+		]
 	}
 }

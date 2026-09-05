@@ -5,6 +5,7 @@ import { IMessage } from "@/src/interfaces/message-interface";
 import { IAvatar } from "@/src/interfaces/list-interface";
 import Avatar from "../images/Avatar";
 import Colors from "@/src/constants/Colors";
+import AttachmentContent from "./AttachmentContent";
 
 const formatTime = (timestamp: number) => {
 	const date = new Date(timestamp);
@@ -34,9 +35,11 @@ const StatusTicks = ({ status }: { status?: IMessage["status"] }) => {
 const MessageBubble = ({
 	message,
 	avatar,
+	onPressImage,
 }: {
 	message: IMessage;
 	avatar?: IAvatar;
+	onPressImage?: (uri: string) => void;
 }) => {
 	const isSender = message.type === "sender";
 
@@ -56,9 +59,18 @@ const MessageBubble = ({
 					isSender ? styles.senderBubble : styles.receiverBubble,
 				]}
 			>
-				<Text style={isSender ? styles.senderText : styles.receiverText}>
-					{message.text}
-				</Text>
+				{message.attachment && (
+					<AttachmentContent
+						attachment={message.attachment}
+						isSender={isSender}
+						onPressImage={onPressImage}
+					/>
+				)}
+				{!!message.text && (
+					<Text style={isSender ? styles.senderText : styles.receiverText}>
+						{message.text}
+					</Text>
+				)}
 				<View style={styles.metaRow}>
 					<Text style={isSender ? styles.senderTime : styles.receiverTime}>
 						{formatTime(message.timestamp)}

@@ -22,6 +22,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [UI Components & Styling](./architecture/ui-components.md) | React Native style conventions (border radius, conditional styles, SVG icons, themed text). |
 | [Fonts & Splash Screen](./architecture/fonts-and-splash.md) | Custom font loading via `expo-font` and the splash screen readiness gate. |
 | [Realtime Messaging Infrastructure](./architecture/realtime-messaging.md) | Socket.IO client, event contract, connection status, offline outbox queue & flush-on-reconnect. |
+| [Media & File Attachments](./architecture/media-attachments.md) | Attachment sheet, camera/gallery/document/location pickers, media bubbles, fullscreen pinch-to-zoom viewer. |
 
 ---
 
