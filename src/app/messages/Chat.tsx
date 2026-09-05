@@ -18,6 +18,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, runOnJS } from "react-native-reanimated";
 
 import BIcon from "@/src/components/buttons/BIcon";
+import Colors from "@/src/constants/Colors";
 import { clip } from "@/src/constants/svgs/icons";
 import MessageBubble from "@/src/components/messages/MessageBubble";
 import DateSeparator, { getDateLabel } from "@/src/components/messages/DateSeparator";
@@ -25,6 +26,7 @@ import EmptyChatState from "@/src/components/messages/EmptyChatState";
 import AttachmentSheet, { TAttachmentOption } from "@/src/components/messages/AttachmentSheet";
 import MediaViewerModal from "@/src/components/messages/MediaViewerModal";
 import VoiceRecordingBar from "@/src/components/messages/VoiceRecordingBar";
+import EmojiPicker, { EMOJI_PICKER_HEIGHT } from "@/src/components/messages/EmojiPicker";
 import { composeMessage, seedConversation, updateAttachmentProgress } from "@/src/redux/features/messagesSlice";
 import { useChatRealtime } from "@/src/hooks/useChatRealtime";
 import { useAttachmentPicker } from "@/src/hooks/useAttachmentPicker";
@@ -80,8 +82,10 @@ const Chat = () => {
 
 	const [keyboardOffset, setKeyboardOffset] = useState(0);
 	const [text, setText] = useState("");
+	const [selection, setSelection] = useState({ start: 0, end: 0 });
 	const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
 	const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
+	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 	const [viewerUri, setViewerUri] = useState<string | undefined>();
 	const flatListRef = useRef<FlatList>(null);
 	const { pickAttachment } = useAttachmentPicker();
@@ -154,6 +158,16 @@ const Chat = () => {
 		requestAnimationFrame(() => {
 			flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
 		});
+	};
+
+	const handleSelectEmoji = (emoji: string) => {
+		const before = text.slice(0, selection.start);
+		const after = text.slice(selection.end);
+		const nextText = before + emoji + after;
+		const cursor = before.length + emoji.length;
+
+		setText(nextText);
+		setSelection({ start: cursor, end: cursor });
 	};
 
 	const sendAttachmentMessage = (attachment: IAttachment) => {
@@ -268,7 +282,7 @@ const Chat = () => {
 						keyExtractor={(item) => item.id}
 						contentContainerStyle={[
 							styles.messageList,
-							{ paddingBottom: 80 + keyboardOffset },
+							{ paddingBottom: 80 + (showEmojiPicker ? EMOJI_PICKER_HEIGHT : keyboardOffset) },
 						]}
 						showsVerticalScrollIndicator={false}
 						keyboardShouldPersistTaps="handled"
@@ -280,7 +294,7 @@ const Chat = () => {
 					style={[
 						styles.inputBar,
 						{
-							bottom: keyboardOffset,
+							bottom: showEmojiPicker ? EMOJI_PICKER_HEIGHT : keyboardOffset,
 						},
 					]}
 				>
@@ -303,6 +317,8 @@ const Chat = () => {
 									returnKeyType="send"
 									blurOnSubmit={false}
 									value={text}
+									selection={selection}
+									onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
 									onChangeText={(value) => {
 										setText(value);
 										if (value.trim()) notifyTyping();
@@ -317,6 +333,7 @@ const Chat = () => {
 									}}
 									onSubmitEditing={handleSend}
 									onFocus={() => {
+										setShowEmojiPicker(false);
 										requestAnimationFrame(() => {
 											flatListRef.current?.scrollToOffset({
 												offset: 0,
@@ -326,11 +343,16 @@ const Chat = () => {
 									}}
 								/>
 							</View>
-							<TouchableOpacity>
+							<TouchableOpacity
+								onPress={() => {
+									Keyboard.dismiss();
+									setShowEmojiPicker((prev) => !prev);
+								}}
+							>
 								<MaterialCommunityIcons
 									name="sticker-emoji"
 									size={22}
-									color="#818181"
+									color={showEmojiPicker ? Colors.focused : "#818181"}
 								/>
 							</TouchableOpacity>
 						</>
@@ -358,6 +380,12 @@ const Chat = () => {
 						</TouchableOpacity>
 					)}
 				</View>
+
+				{showEmojiPicker && (
+					<View style={styles.emojiPickerContainer}>
+						<EmojiPicker onSelectEmoji={handleSelectEmoji} />
+					</View>
+				)}
 
 				<AttachmentSheet
 					visible={showAttachmentSheet}
@@ -433,6 +461,12 @@ const styles = StyleSheet.create({
 	},
 	micButtonActive: {
 		backgroundColor: "#F04A4C",
+	},
+	emojiPickerContainer: {
+		position: "absolute",
+		left: 0,
+		right: 0,
+		bottom: 0,
 	},
 	offlineBanner: {
 		backgroundColor: "#F04A4C",
