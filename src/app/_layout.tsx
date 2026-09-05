@@ -79,6 +79,9 @@ const AppGate = () => {
 				<Stack.Screen name="broadcast-create-details" options={{ presentation: "card" }} />
 				<Stack.Screen name="join/[code]" options={{ presentation: "fullScreenModal" }} />
 				<Stack.Screen name="safety-number" options={{ presentation: "card" }} />
+				<Stack.Screen name="sticker-packs" options={{ presentation: "card" }} />
+				<Stack.Screen name="sticker-maker" options={{ presentation: "fullScreenModal" }} />
+				<Stack.Screen name="addstickers/[packId]" options={{ presentation: "fullScreenModal" }} />
 				<Stack.Screen name="shared-media" options={{ presentation: "card" }} />
 				<Stack.Screen name="starred-messages" options={{ presentation: "card" }} />
 				<Stack.Screen name="profile" options={{ presentation: "modal" }} />

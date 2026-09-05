@@ -47,6 +47,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Deep E2EE Cryptographic Engine](./architecture/e2ee-crypto.md) | Real, from-scratch X3DH + Double Ratchet + Sender Keys using pure-JS Curve25519/Ed25519/AES-CBC/HMAC-SHA256 primitives, wired into the live 1-on-1 message path, with Signal-algorithm Safety Numbers and a self-verifying cryptographic self-test. |
 | [E2EE Media Pipeline & Encrypted Backups](./architecture/e2ee-media.md) | AES-256-GCM encrypt/verify/decrypt on every real attachment sent, and PBKDF2-derived (Argon2id substitute) passphrase-encrypted database backups exported/restored via the OS share sheet and document picker. |
 | [Zero-Knowledge Encrypted Push Notifications](./architecture/encrypted-push.md) | The encrypted push payload contract, an encrypted quick-reply path, and an App Group config plugin — plus an honest account of why the iOS NSE/Android background decryptor themselves are native platform code this environment can't build or verify, with reference (unbuilt) Swift/Kotlin showing the integration shape. |
+| [Animated Stickers, Sticker Maker & GIFs](./architecture/stickers.md) | Real hand-authored `.tgs` (gzipped Lottie) stickers rendered via `lottie-react-native`, a pack manager with shareable deep links, and an in-app sticker maker using a manual lasso cutout as a real substitute for native ML subject segmentation. |
 
 ---
 

@@ -1,6 +1,6 @@
 import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
 
 import { IAttachment } from "@/src/interfaces/message-interface";
@@ -8,6 +8,7 @@ import { markAttachmentViewed } from "@/src/redux/features/messagesSlice";
 import { getDocumentIcon } from "@/src/lib/media/documentIcon";
 import AudioMessageBubble from "./AudioMessageBubble";
 import VideoNoteBubble from "./VideoNoteBubble";
+import StickerView from "@/src/components/stickers/StickerView";
 
 const formatFileSize = (bytes?: number) => {
 	if (!bytes) return "";
@@ -32,6 +33,18 @@ const AttachmentContent = ({
 	onPressVideoNote?: (uri: string) => void;
 }) => {
 	const dispatch = useDispatch();
+	const sticker = useSelector((state: any) =>
+		attachment.type === "sticker" && attachment.stickerId ? state.stickers.stickers[attachment.stickerId] : null
+	);
+
+	if (attachment.type === "sticker") {
+		if (!sticker) return null;
+		return (
+			<View style={styles.stickerWrapper}>
+				<StickerView sticker={sticker} size={128} />
+			</View>
+		);
+	}
 
 	if (attachment.type === "audio") {
 		return (
@@ -203,6 +216,10 @@ const styles = StyleSheet.create({
 		...StyleSheet.absoluteFillObject,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	stickerWrapper: {
+		width: 128,
+		height: 128,
 	},
 	encryptionBadge: {
 		position: "absolute",
