@@ -63,8 +63,12 @@ export const chatsSlice = createSlice({
         deleteChat: (state, action: PayloadAction<string>) => {
             state.chats = state.chats.filter((c) => c.id !== action.payload);
         },
+        /** Replaces the list with what's in the local database on startup. */
+        hydrateChats: (state, action: PayloadAction<IChatRibbon[]>) => {
+            state.chats = action.payload;
+        },
     },
 });
 
-export const { toggleMuteChat, deleteChat } = chatsSlice.actions;
+export const { toggleMuteChat, deleteChat, hydrateChats } = chatsSlice.actions;
 export default chatsSlice.reducer;

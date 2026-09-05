@@ -112,8 +112,12 @@ export const callSlice = createSlice({
         clearCallHistory: (state) => {
             state.history = [];
         },
+        /** Replaces call history with what's in the local database on startup. */
+        hydrateCallHistory: (state, action: PayloadAction<ICallRibbon[]>) => {
+            state.history = action.payload;
+        },
     },
 });
 
-export const { startCall, markCallConnected, endCall, clearCallHistory } = callSlice.actions;
+export const { startCall, markCallConnected, endCall, clearCallHistory, hydrateCallHistory } = callSlice.actions;
 export default callSlice.reducer;
