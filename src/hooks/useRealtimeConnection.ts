@@ -16,6 +16,7 @@ import {
     receiveMessage,
     updateMessageStatus,
 } from "@/src/redux/features/messagesSlice";
+import { unarchiveChat } from "@/src/redux/features/chatsSlice";
 
 /**
  * The realtime server URL. Configure via an EXPO_PUBLIC_ env var so it can
@@ -94,6 +95,12 @@ export const useRealtimeConnection = (currentUserId?: string) => {
                     },
                 })
             );
+
+            const state: any = store.getState();
+            const chat = state.chats.chats.find((c: any) => c.id === payload.conversationId);
+            if (chat?.archived && state.settings.chat.unarchiveOnNewMessage) {
+                dispatch(unarchiveChat(payload.conversationId));
+            }
         };
 
         const onTypingUpdate = (payload: ITypingEvent) => {

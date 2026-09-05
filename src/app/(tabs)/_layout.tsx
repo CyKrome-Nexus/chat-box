@@ -19,9 +19,13 @@ import Avatar from "@/src/components/images/Avatar";
 import { useDispatch, useSelector } from "react-redux";
 import { IUser } from "@/src/interfaces/user-interface";
 import { setShowAddContactModal } from "@/src/redux/features/contactsSlice";
+import { IChatRibbon } from "@/src/interfaces/list-interface";
 
 export default function TabLayout() {
 	const user = useSelector((state: { user: IUser | null }) => state.user);
+	const totalUnread = useSelector((state: any) =>
+		(state.chats.chats as IChatRibbon[]).reduce((sum, c) => sum + (c.notificationCount || 0), 0)
+	);
 
 	// Guards this whole group against unauthenticated access — e.g. a deep
 	// link straight into "(tabs)/messages" with no session.
@@ -73,6 +77,7 @@ export default function TabLayout() {
 					tabBarIcon: ({ focused }) => (
 						<IconSVG svg={message} includeBorder={false} focused={focused} />
 					),
+					tabBarBadge: totalUnread > 0 ? totalUnread : undefined,
 					tabBarActiveTintColor: Colors.focused,
 					headerRight: () => {
 						const user = useSelector((state: { user: IUser }) => state.user);

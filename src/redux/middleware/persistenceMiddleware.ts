@@ -18,8 +18,18 @@ export const persistenceMiddleware: Middleware = (store) => (next) => (action: a
     const state = store.getState();
 
     switch (action.type) {
-        case "chats/toggleMuteChat": {
+        case "chats/toggleMuteChat":
+        case "chats/togglePinChat":
+        case "chats/toggleArchiveChat":
+        case "chats/markChatRead":
+        case "chats/markChatUnread":
+        case "chats/unarchiveChat": {
             const chat = state.chats.chats.find((c: any) => c.id === action.payload);
+            if (chat) upsertConversation(chat);
+            break;
+        }
+        case "chats/setChatDraft": {
+            const chat = state.chats.chats.find((c: any) => c.id === action.payload.chatId);
             if (chat) upsertConversation(chat);
             break;
         }
@@ -36,6 +46,11 @@ export const persistenceMiddleware: Middleware = (store) => (next) => (action: a
         case "messages/receiveMessage": {
             const { conversationId, message } = action.payload;
             upsertMessage(conversationId, message);
+            // An incoming message bumps the chat's unread count (and may
+            // unarchive it) via chatsSlice's extraReducers/onMessageReceive —
+            // mirror that into the conversations table too.
+            const chat = state.chats.chats.find((c: any) => c.id === conversationId);
+            if (chat) upsertConversation(chat);
             break;
         }
         case "messages/markMessageFlushed": {

@@ -5,6 +5,8 @@ interface ChatsState {
     chats: IChatRibbon[];
 }
 
+export const MAX_PINNED_CHATS = 5;
+
 const initialState: ChatsState = {
     chats: [
         {
@@ -63,12 +65,75 @@ export const chatsSlice = createSlice({
         deleteChat: (state, action: PayloadAction<string>) => {
             state.chats = state.chats.filter((c) => c.id !== action.payload);
         },
+        /**
+         * Pinning is capped at MAX_PINNED_CHATS — the caller (UI) is expected
+         * to warn the user before dispatching once the cap is already hit;
+         * the reducer itself just refuses to pin a 6th to stay safe either way.
+         */
+        togglePinChat: (state, action: PayloadAction<string>) => {
+            const chat = state.chats.find((c) => c.id === action.payload);
+            if (!chat) return;
+            if (!chat.pinned && state.chats.filter((c) => c.pinned).length >= MAX_PINNED_CHATS) return;
+            chat.pinned = !chat.pinned;
+        },
+        toggleArchiveChat: (state, action: PayloadAction<string>) => {
+            const chat = state.chats.find((c) => c.id === action.payload);
+            if (chat) chat.archived = !chat.archived;
+        },
+        setChatDraft: (state, action: PayloadAction<{ chatId: string; draft: string }>) => {
+            const chat = state.chats.find((c) => c.id === action.payload.chatId);
+            if (chat) chat.draft = action.payload.draft || undefined;
+        },
+        markChatRead: (state, action: PayloadAction<string>) => {
+            const chat = state.chats.find((c) => c.id === action.payload);
+            if (chat) chat.notificationCount = 0;
+        },
+        /** Ticket's explicit "Mark as Unread" action — bumps to at least 1 so the unread badge/filter picks it up. */
+        markChatUnread: (state, action: PayloadAction<string>) => {
+            const chat = state.chats.find((c) => c.id === action.payload);
+            if (chat) chat.notificationCount = Math.max(1, chat.notificationCount || 0);
+        },
+        /**
+         * "Unarchive on new message" setting (see settings-chat.tsx): when
+         * disabled, an incoming message for an archived chat stays archived
+         * instead of popping back into the main inbox.
+         */
+        unarchiveChat: (state, action: PayloadAction<string>) => {
+            const chat = state.chats.find((c) => c.id === action.payload);
+            if (chat) chat.archived = false;
+        },
         /** Replaces the list with what's in the local database on startup. */
         hydrateChats: (state, action: PayloadAction<IChatRibbon[]>) => {
             state.chats = action.payload;
         },
     },
+    extraReducers: (builder) => {
+        // Cross-slice reaction: an incoming message bumps that chat's unread
+        // badge, and un-archives it unless Settings > Chat has that disabled
+        // (see setUnarchiveOnNewMessage). Matched by action type string
+        // rather than importing messagesSlice's action creator, so this
+        // slice doesn't need a hard dependency on that module.
+        builder.addMatcher(
+            (action): action is { type: string; payload: { conversationId: string } } =>
+                action.type === "messages/receiveMessage",
+            (state, action) => {
+                const chat = state.chats.find((c) => c.id === action.payload.conversationId);
+                if (!chat) return;
+                chat.notificationCount = (chat.notificationCount || 0) + 1;
+            }
+        );
+    },
 });
 
-export const { toggleMuteChat, deleteChat, hydrateChats } = chatsSlice.actions;
+export const {
+    toggleMuteChat,
+    deleteChat,
+    togglePinChat,
+    toggleArchiveChat,
+    setChatDraft,
+    markChatRead,
+    markChatUnread,
+    unarchiveChat,
+    hydrateChats,
+} = chatsSlice.actions;
 export default chatsSlice.reducer;
