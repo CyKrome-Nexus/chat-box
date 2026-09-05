@@ -26,6 +26,7 @@ export interface IChatList {
 
 // Calls
 export interface ICallRibbon extends IRibbonParent {
+    id: string,
     callTime?: string,
     callType?: ECallTypes
 }

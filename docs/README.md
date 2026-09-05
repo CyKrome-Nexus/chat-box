@@ -27,6 +27,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Emoji Picker](./architecture/emoji-picker.md) | Categorized emoji panel, search, recents, cursor-position insertion. |
 | [Social Authentication](./architecture/social-auth.md) | Google/Facebook/Apple OAuth wiring, per-button handlers, account creation & linking. |
 | [Device Contacts](./architecture/contacts.md) | expo-contacts sync, registered-status lookup, search, add-contact modal, start-chat flow. |
+| [Audio & Video Calling UI](./architecture/calling.md) | Call state machine, outgoing/incoming/active screens, call history logging. |
 
 ---
 

@@ -20,29 +20,25 @@ import { ICallRibbon } from "@/src/interfaces/list-interface";
 import IconSVG from "../images/IconSVG";
 import ECallTypes from "@/src/enums/call-types";
 import IIconSVG from "@/src/interfaces/icon-interface";
+import { useCallManager } from "@/src/hooks/useCallManager";
 
 const BUTTON_WIDTH = Dimensions.get("window").width * 0.3;
 
 const CallRibbon = ({ content }: { content: ICallRibbon }) => {
+	const { startOutgoingCall } = useCallManager();
+
 	var svg: IIconSVG;
 	switch (content?.callType) {
 		case ECallTypes.incoming:
-			console.log(ECallTypes.incoming);
-			console.log(`${content?.callType}\n`);
 			svg = incomingCall;
 			break;
 		case ECallTypes.outgoing:
-			console.log(ECallTypes.outgoing);
-			console.log(`${content?.callType}\n`);
 			svg = outgoingCall;
 			break;
 		case ECallTypes.missed:
-			console.log(ECallTypes.missed);
-			console.log(`${content?.callType}\n`);
 			svg = missedCall;
 			break;
 		default:
-			console.log("default");
 			svg = incomingCall;
 			break;
 	}
@@ -72,6 +68,7 @@ const CallRibbon = ({ content }: { content: ICallRibbon }) => {
 							height={26}
 							iconHeight={26}
 							iconWidth={26}
+							onPress={() => startOutgoingCall(content, "audio")}
 						/>
 						<BIcon
 							svg={camera}
@@ -79,6 +76,7 @@ const CallRibbon = ({ content }: { content: ICallRibbon }) => {
 							height={26}
 							iconHeight={26}
 							iconWidth={26}
+							onPress={() => startOutgoingCall(content, "video")}
 						/>
 					</View>
 				</TouchableOpacity>
