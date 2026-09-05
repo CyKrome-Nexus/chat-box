@@ -50,6 +50,7 @@ All features, architectural designs, protocols, and data models are organized wi
 | [Animated Stickers, Sticker Maker & GIFs](./architecture/stickers.md) | Real hand-authored `.tgs` (gzipped Lottie) stickers rendered via `lottie-react-native`, a pack manager with shareable deep links, and an in-app sticker maker using a manual lasso cutout as a real substitute for native ML subject segmentation. |
 | [Production Status & Stories Pipeline](./architecture/stories-pipeline.md) | Adjacent-story image prefetching, video-clock-synced progress bars, a real per-post audience picker with Sender-Keys-based key distribution, read-receipts-aware view tracking, a Muted Updates accordion, and Save to Personal Archive. |
 | [Backend & Cloud Infrastructure](./architecture/backend-infrastructure.md) | A precise specification of the WebSocket gateway/Redis/Postgres/Coturn/CDN backend this client already assumes and is built against (env vars, event contract, prekey-bundle/ciphertext-upload shapes) — plus a real client-side dynamic TURN credential refresh. No server code belongs in this client repo. |
+| [Display Zoom, Text Scaling & Responsive Layout](./architecture/display-scaling.md) | An 80%–165% display scale engine synced to OS Dynamic Type/Display Size with a manual slider + presets, wired into message bubbles and the chat list with non-clipping layout fixes, plus a real tablet/foldable Master-Detail split view that reuses the live chat thread component. |
 
 ---
 

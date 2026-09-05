@@ -88,16 +88,26 @@ const buildDisplayData = (messages: IMessage[]): TDisplayItem[] => {
 	return withSeparators.reverse();
 };
 
-const Chat = () => {
+/**
+ * `embeddedUser` lets this same component (with its full feature set — real
+ * WebRTC calls, encryption, media, everything below) be rendered directly
+ * inside the tablet/foldable Master-Detail right pane
+ * (see MasterDetailLayout.tsx) instead of only as a pushed stack screen.
+ * When present it takes priority over the route's `user` param, which stays
+ * the only source on phones (the normal, unmodified navigation path).
+ */
+const Chat = ({ embeddedUser }: { embeddedUser?: IChatRibbon } = {}) => {
 	const params = useLocalSearchParams();
-	const user: IChatRibbon | null = (() => {
-		if (!params.user) return null;
-		try {
-			return JSON.parse(params.user as string);
-		} catch {
-			return null;
-		}
-	})();
+	const user: IChatRibbon | null =
+		embeddedUser ??
+		(() => {
+			if (!params.user) return null;
+			try {
+				return JSON.parse(params.user as string);
+			} catch {
+				return null;
+			}
+		})();
 
 	const conversationId = user?.id || user?.name || "unknown";
 	const currentUserId = useSelector(

@@ -19,6 +19,7 @@ import Colors from "@/src/constants/Colors";
 import AttachmentContent from "./AttachmentContent";
 import { IBubbleAnchor } from "./MessageActionsOverlay";
 import HighlightedText from "@/src/components/search/HighlightedText";
+import { useDisplayScale } from "@/src/lib/display/useDisplayScale";
 
 const SWIPE_REPLY_THRESHOLD = 56;
 const SWIPE_REPLY_MAX = 84;
@@ -86,6 +87,7 @@ const MessageBubble = ({
 	searchQuery?: string;
 }) => {
 	const isSender = message.type === "sender";
+	const { scaleFont } = useDisplayScale();
 	const translateX = useSharedValue(0);
 	const hasTriggeredHaptic = useRef(false);
 	const bubbleRowRef = useRef<View>(null);
@@ -167,13 +169,13 @@ const MessageBubble = ({
 						]}
 					>
 						{message.deletedForEveryone ? (
-							<Text style={isSender ? styles.deletedTextSender : styles.deletedTextReceiver}>
+							<Text style={[isSender ? styles.deletedTextSender : styles.deletedTextReceiver, { fontSize: scaleFont(14) }]}>
 								This message was deleted
 							</Text>
 						) : (
 							<>
 								{!isSender && message.senderName && (
-									<Text style={[styles.senderNameLabel, { color: message.senderColor || Colors.focused }]}>
+									<Text style={[styles.senderNameLabel, { color: message.senderColor || Colors.focused, fontSize: scaleFont(12) }]}>
 										{message.senderName}
 									</Text>
 								)}
@@ -183,7 +185,7 @@ const MessageBubble = ({
 										style={[styles.replyQuote, isSender ? styles.replyQuoteSender : styles.replyQuoteReceiver]}
 									>
 										<Text
-											style={isSender ? styles.replyQuoteTextSender : styles.replyQuoteTextReceiver}
+											style={[isSender ? styles.replyQuoteTextSender : styles.replyQuoteTextReceiver, { fontSize: scaleFont(13) }]}
 											numberOfLines={1}
 										>
 											{message.replyTo.text}
@@ -204,19 +206,19 @@ const MessageBubble = ({
 									<HighlightedText
 										text={message.text}
 										query={searchQuery}
-										style={isSender ? styles.senderText : styles.receiverText}
+										style={StyleSheet.flatten([isSender ? styles.senderText : styles.receiverText, { fontSize: scaleFont(16) }])}
 										highlightStyle={styles.searchHighlight}
 									/>
 								) : (
-									<Text style={isSender ? styles.senderText : styles.receiverText}>
+									<Text style={[isSender ? styles.senderText : styles.receiverText, { fontSize: scaleFont(16) }]}>
 										{message.text}
 									</Text>
 								))}
 								<View style={styles.metaRow}>
 									{message.edited && (
-										<Text style={isSender ? styles.senderTime : styles.receiverTime}>edited</Text>
+										<Text style={[isSender ? styles.senderTime : styles.receiverTime, { fontSize: scaleFont(11) }]}>edited</Text>
 									)}
-									<Text style={isSender ? styles.senderTime : styles.receiverTime}>
+									<Text style={[isSender ? styles.senderTime : styles.receiverTime, { fontSize: scaleFont(11) }]}>
 										{formatTime(message.timestamp)}
 									</Text>
 									{isSender && <StatusTicks status={message.status} />}
@@ -306,7 +308,9 @@ const styles = StyleSheet.create({
 	},
 	metaRow: {
 		flexDirection: "row",
+		flexWrap: "wrap",
 		alignItems: "center",
+		justifyContent: "flex-end",
 		alignSelf: "flex-end",
 		gap: 4,
 		marginTop: 4,

@@ -35,6 +35,14 @@ interface SettingsState {
         biometricLockEnabled: boolean;
         autoLockTimeout: TAutoLockTimeout;
     };
+    /** Display Zoom / Text Scaling — see docs/architecture/display-scaling.md. */
+    display: {
+        /** Manual override, used only when useSystemTextSize is false. 0.8–1.65. */
+        zoomLevel: number;
+        /** When true, ignore zoomLevel and derive scale from the OS's Dynamic
+         * Type / Display Size accessibility setting (PixelRatio.getFontScale()). */
+        useSystemTextSize: boolean;
+    };
     lastBackupAt: number | null;
 }
 
@@ -66,6 +74,10 @@ const initialState: SettingsState = {
         biometricLockEnabled: false,
         autoLockTimeout: "immediately",
     },
+    display: {
+        zoomLevel: 1,
+        useSystemTextSize: true,
+    },
     lastBackupAt: null,
 };
 
@@ -81,6 +93,7 @@ export const settingsSlice = createSlice({
             privacy: { ...state.privacy, ...action.payload.privacy },
             chat: { ...state.chat, ...action.payload.chat },
             security: { ...state.security, ...action.payload.security },
+            display: { ...state.display, ...action.payload.display },
         }),
         setPrivacyPref: (
             state,
@@ -130,6 +143,12 @@ export const settingsSlice = createSlice({
         setAutoLockTimeout: (state, action: PayloadAction<TAutoLockTimeout>) => {
             state.security.autoLockTimeout = action.payload;
         },
+        setZoomLevel: (state, action: PayloadAction<number>) => {
+            state.display.zoomLevel = action.payload;
+        },
+        setUseSystemTextSize: (state, action: PayloadAction<boolean>) => {
+            state.display.useSystemTextSize = action.payload;
+        },
     },
 });
 
@@ -145,5 +164,7 @@ export const {
     setUnarchiveOnNewMessage,
     setBiometricLockEnabled,
     setAutoLockTimeout,
+    setZoomLevel,
+    setUseSystemTextSize,
 } = settingsSlice.actions;
 export default settingsSlice.reducer;

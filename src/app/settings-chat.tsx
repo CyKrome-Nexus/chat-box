@@ -95,7 +95,7 @@ const SettingsChat = () => {
 				<Ionicons name="chevron-forward" size={18} color="#797C7B" />
 			</TouchableOpacity>
 
-			<Text style={styles.sectionTitle}>Theme</Text>
+			<Text style={styles.sectionTitle}>Appearance</Text>
 			<View style={styles.themeRow}>
 				{THEME_OPTIONS.map((option) => (
 					<TouchableOpacity
@@ -109,6 +109,11 @@ const SettingsChat = () => {
 					</TouchableOpacity>
 				))}
 			</View>
+			<TouchableOpacity style={styles.starredRow} onPress={() => router.push("/settings-display")}>
+				<Ionicons name="text" size={20} color={Colors.focused} />
+				<Text style={styles.starredRowLabel}>Text & Display Size</Text>
+				<Ionicons name="chevron-forward" size={18} color="#797C7B" />
+			</TouchableOpacity>
 
 			<Text style={styles.sectionTitle}>Archiving</Text>
 			<SettingToggleRow
