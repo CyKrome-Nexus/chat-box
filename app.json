@@ -25,7 +25,11 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.exporouterlearn"
+      "package": "com.anonymous.exporouterlearn",
+      "permissions": [
+        "android.permission.USE_FULL_SCREEN_INTENT",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -67,7 +71,15 @@
           "cameraPermission": "Chatbox needs access to your camera to scan QR codes."
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Chatbox needs access to your camera for video calls.",
+          "microphonePermission": "Chatbox needs access to your microphone for audio and video calls."
+        }
+      ],
+      "@config-plugins/react-native-callkeep"
     ]
   }
 }

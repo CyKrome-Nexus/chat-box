@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useSelector } from "react-redux";
 
 import IconSVG from "@/src/components/images/IconSVG";
 import { backArrow, camera, phone } from "@/src/constants/svgs/icons";
 import Avatar from "@/src/components/images/Avatar";
 import BIcon from "@/src/components/buttons/BIcon";
-import { useCallManager } from "@/src/hooks/useCallManager";
+import { useCallEngine } from "@/src/hooks/useCallEngine";
 
 const MessagesLayout = () => {
 	const params = useLocalSearchParams();
@@ -18,7 +19,8 @@ const MessagesLayout = () => {
 			return null;
 		}
 	})();
-	const { startOutgoingCall } = useCallManager();
+	const currentUserId = useSelector((state: any) => state.user?._id || state.user?.username || "me");
+	const { startOutgoingCall } = useCallEngine(currentUserId);
 
 	return (
 		<Stack>

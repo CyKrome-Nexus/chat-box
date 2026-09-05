@@ -12,6 +12,8 @@ import { useSessionPersistence } from "../hooks/useSessionPersistence";
 import { useSettingsPersistence } from "../hooks/useSettingsPersistence";
 import { useOfflineDbSync } from "../hooks/useOfflineDbSync";
 import { useNetworkSync } from "../hooks/useNetworkSync";
+import { useCallKeepIntegration } from "../hooks/useCallKeepIntegration";
+import { useIncomingCallNotification } from "../hooks/useIncomingCallNotification";
 import { Stack } from "expo-router";
 
 SplashScreen.preventAutoHideAsync();
@@ -31,6 +33,8 @@ const AppGate = () => {
 	useOfflineDbSync();
 	useNetworkSync();
 	useRealtimeConnection(userId);
+	useCallKeepIntegration();
+	useIncomingCallNotification();
 
 	useEffect(() => {
 		if (sessionStatus === "ready") {

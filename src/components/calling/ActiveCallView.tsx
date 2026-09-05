@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import Avatar from "../images/Avatar";
 import CallControlButton from "./CallControlButton";
 import CallTimer from "./CallTimer";
 import { IActiveCall } from "@/src/redux/features/callSlice";
+import { useCallAudioRouting, setMicrophoneMuted, setSpeakerphoneEnabled } from "@/src/hooks/useCallAudioRouting";
 
 const ActiveCallView = ({ call, onHangUp }: { call: IActiveCall; onHangUp: () => void }) => {
 	const [muted, setMuted] = useState(false);
@@ -12,6 +13,19 @@ const ActiveCallView = ({ call, onHangUp }: { call: IActiveCall; onHangUp: () =>
 	const [frontCamera, setFrontCamera] = useState(true);
 
 	const isVideo = call.type === "video";
+
+	useCallAudioRouting(true, isVideo);
+
+	useEffect(() => {
+		setSpeakerphoneEnabled(speakerOn);
+	}, [speakerOn]);
+
+	const toggleMuted = () => {
+		setMuted((prev) => {
+			setMicrophoneMuted(!prev);
+			return !prev;
+		});
+	};
 
 	return (
 		<View style={[styles.container, isVideo && styles.videoContainer]}>
@@ -32,7 +46,7 @@ const ActiveCallView = ({ call, onHangUp }: { call: IActiveCall; onHangUp: () =>
 					icon={muted ? "mic-off" : "mic"}
 					label="Mute"
 					active={muted}
-					onPress={() => setMuted((prev) => !prev)}
+					onPress={toggleMuted}
 				/>
 				<CallControlButton
 					icon={speakerOn ? "volume-high" : "volume-mute"}

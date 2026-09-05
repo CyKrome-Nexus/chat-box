@@ -6,10 +6,11 @@ import { useSelector } from "react-redux";
 import OutgoingCallView from "@/src/components/calling/OutgoingCallView";
 import IncomingCallView from "@/src/components/calling/IncomingCallView";
 import ActiveCallView from "@/src/components/calling/ActiveCallView";
-import { useCallManager } from "@/src/hooks/useCallManager";
+import { useCallEngine } from "@/src/hooks/useCallEngine";
 
 const CallScreen = () => {
-	const { activeCall, acceptIncomingCall, hangUp } = useCallManager();
+	const currentUserId = useSelector((state: any) => state.user?._id || state.user?.username || "me");
+	const { activeCall, acceptIncomingCall, hangUp } = useCallEngine(currentUserId);
 
 	// No active call (e.g. screen reopened after the call already ended) —
 	// nothing to show, so back out immediately.
