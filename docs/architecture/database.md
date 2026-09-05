@@ -1,5 +1,10 @@
 # Database & Offline-First Sync Architecture
 
+> [!NOTE]
+> This is now implemented — see [Offline-First Database Engine & Real-Time Sync](./offline-database.md)
+> for the concrete schema, repo modules, hydration flow, and sync-queue/backoff details
+> (`expo-sqlite`, not WatermelonDB — see that doc for why).
+
 ## 1. Local Database Schema (WatermelonDB / SQLite)
 The application maintains an embedded local database partitioned across the following collections:
 - `conversations`: Thread metadata, unread counts, pinned state, archive state, and draft text.

@@ -17,7 +17,13 @@ const formatTime = (timestamp: number) => {
 };
 
 const StatusTicks = ({ status }: { status?: IMessage["status"] }) => {
-	if (!status) return null;
+	if (!status) {
+		// No status yet = queued in the offline outbox (see
+		// docs/architecture/offline-database.md) — a clock, like WhatsApp's
+		// pending-message indicator, flips to a checkmark once connectivity
+		// returns and the message is actually sent.
+		return <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.8)" />;
+	}
 
 	if (status === "sent") {
 		return <Ionicons name="checkmark" size={14} color="rgba(255,255,255,0.8)" />;

@@ -101,6 +101,10 @@ export const messagesSlice = createSlice({
             state.byConversation = {};
             state.outboxByConversation = {};
         },
+        /** Replaces all conversations' messages with what's in the local database on startup. */
+        hydrateMessages: (state, action: PayloadAction<Record<string, IMessage[]>>) => {
+            state.byConversation = action.payload;
+        },
     },
 });
 
@@ -112,5 +116,6 @@ export const {
     seedConversation,
     updateAttachmentProgress,
     clearAllMessages,
+    hydrateMessages,
 } = messagesSlice.actions;
 export default messagesSlice.reducer;

@@ -11,7 +11,8 @@ All features, architectural designs, protocols, and data models are organized wi
 | Guide | Description |
 |---|---|
 | [System Architecture](./architecture/overview.md) | High-level system architecture, state management, offline-first engine, and network topologies. |
-| [Database & Offline-First](./architecture/database.md) | Local WatermelonDB / SQLite schemas, outbox queueing, and delta synchronization. |
+| [Database & Offline-First (design)](./architecture/database.md) | Original design note — see the implementation doc below. |
+| [Offline-First Database Engine](./architecture/offline-database.md) | expo-sqlite schema, startup hydration, write-through persistence, sync-queue exponential backoff. |
 | [End-to-End Encryption (E2EE)](./architecture/e2ee-security.md) | Signal Protocol (X3DH, Double Ratchet, Sender Keys), AES-256-GCM media encryption, and zero-knowledge push notifications. |
 | [Chat & Messaging](./features/chat-messaging.md) | Real-time WebSocket messaging, message bubbles, long-press actions, reactions, quotes, and drafts. |
 | [Voice, Video & Media](./features/voice-video-media.md) | Voice notes (live waveform), circular video notes, in-app camera, media editor, and stickers. |

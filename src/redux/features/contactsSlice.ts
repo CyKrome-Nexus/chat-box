@@ -21,8 +21,12 @@ export const contactsSlice = createSlice({
         setShowAddContactModal: (state, action: PayloadAction<boolean>) => {
             state.showAddContactModal = action.payload;
         },
+        /** Replaces manually-added contacts with what's in the local database on startup. */
+        hydrateManualContacts: (state, action: PayloadAction<IContactRibbon[]>) => {
+            state.manualContacts = action.payload;
+        },
     },
 });
 
-export const { addManualContact, setShowAddContactModal } = contactsSlice.actions;
+export const { addManualContact, setShowAddContactModal, hydrateManualContacts } = contactsSlice.actions;
 export default contactsSlice.reducer;

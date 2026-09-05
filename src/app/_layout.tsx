@@ -9,6 +9,8 @@ import { store } from "../redux/store/store";
 import { useRealtimeConnection } from "../hooks/useRealtimeConnection";
 import { useSessionPersistence } from "../hooks/useSessionPersistence";
 import { useSettingsPersistence } from "../hooks/useSettingsPersistence";
+import { useOfflineDbSync } from "../hooks/useOfflineDbSync";
+import { useNetworkSync } from "../hooks/useNetworkSync";
 import { Stack } from "expo-router";
 
 SplashScreen.preventAutoHideAsync();
@@ -25,6 +27,8 @@ const AppGate = () => {
 
 	useSessionPersistence();
 	useSettingsPersistence();
+	useOfflineDbSync();
+	useNetworkSync();
 	useRealtimeConnection(userId);
 
 	useEffect(() => {

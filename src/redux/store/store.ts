@@ -9,6 +9,7 @@ import sessionReducer from "../features/sessionSlice";
 import contactsReducer from "../features/contactsSlice";
 import callReducer from "../features/callSlice";
 import settingsReducer from "../features/settingsSlice";
+import { persistenceMiddleware } from "../middleware/persistenceMiddleware";
 
 const rootReducer = combineReducers({
    user: authReducer,
@@ -24,6 +25,7 @@ const rootReducer = combineReducers({
 export const store = configureStore({
    reducer: rootReducer,
    devTools: false,
+   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(persistenceMiddleware),
    enhancers: (getDefaultEnhancers) =>
       getDefaultEnhancers().concat(devtoolsEnhancer({ trace: true })),
 });
