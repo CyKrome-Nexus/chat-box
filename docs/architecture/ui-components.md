@@ -53,3 +53,28 @@ packages both export an unrelated type named `TextProps`.
   `router.push("/")`) directly inside `onPress`. Do not add artificial `await sleep(ms)` delays
   before navigating — they only introduce a window for accidental double-taps/race conditions
   without providing any benefit.
+
+## 6. `ListDrawer` Bottom Sheet
+
+`src/components/ListDrawer.tsx` is the draggable bottom-sheet frame wrapping every tab's list
+(chats, calls, contacts, settings).
+
+- Sizing (`minHeight`/`maxHeight`/`startHeight`/`startTop`) comes from `useWindowDimensions()`,
+  not a module-level `Dimensions.get('window')` snapshot — the hook re-renders the component (and
+  an effect re-snaps the sheet's shared values) when the window size actually changes, so rotation,
+  split-screen, and foldable unfold don't leave the sheet with stale drag bounds.
+- The drag gesture (`GestureDetector`) is attached to the small handle bar only, not to
+  `{children}` (which holds each screen's `FlatList`) — that scoping is what prevents the sheet's
+  pan gesture from fighting the list's own scroll gesture. Keep any future drag affordance scoped
+  the same way rather than wrapping the whole sheet. `activeOffsetY([-10, 10])` on that gesture
+  additionally requires a deliberate vertical movement before the drag activates, so a light tap on
+  the handle doesn't jitter the sheet.
+- Never leave dead/unused local state in this file (it previously held an entire duplicate mock
+  chat list that was never rendered) — the chat/call/contact lists it wraps all come from Redux
+  (`chatsSlice`, `callSlice`, `contactsSlice`) via the screens that render as `{children}`.
+
+## 7. Route Param Parsing
+
+Any screen reading a JSON-encoded route param (e.g. `messages/_layout.tsx` and `messages/Chat.tsx`
+parsing `params.user`) must wrap `JSON.parse` in a try/catch and fall back to `null` — a malformed
+or missing deep-link query must never crash the screen.
