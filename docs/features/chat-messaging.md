@@ -19,11 +19,13 @@ Covers real-time chat timelines, message bubble rendering, interactive swipe-to-
 
 Messages live in Redux under `state.messages.byConversation[conversationId]`, an array of
 `IMessage` (`src/interfaces/message-interface.ts`). `conversationId` is currently derived from the
-chat's `id` (falling back to `name`) as passed through route params from `ChatRibbon`; there is no
-backend yet, so `sendMessage` only appends a local, optimistic "sent" message — see issue #7 for
-wiring this to real-time transport.
+chat's `id` (falling back to `name`) as passed through route params from `ChatRibbon`. Sending and
+receiving now goes through the realtime layer — see
+[Realtime Messaging Infrastructure](../architecture/realtime-messaging.md) for the socket client,
+event contract, and offline outbox/flush behavior.
 
-- `sendMessage({ conversationId, text })`: appends a new sender message with `status: "sent"`.
+- `useChatRealtime(conversationId, userId).sendMessage(text)`: appends a new sender message
+  (`"sent"` if the realtime emit succeeded, unset/queued otherwise).
 - `seedConversation({ conversationId, messages })`: only seeds if the conversation is empty; used
   once per opened chat that already has a `lastMessage` preview, so existing conversations show a
   believable two-message backlog (spanning "Yesterday" → "Today" to exercise the date separator)
