@@ -44,6 +44,12 @@
 				{
 					"locationWhenInUsePermission": "Chatbox needs your location to let you share it in a chat."
 				}
+			],
+			[
+				"expo-audio",
+				{
+					"microphonePermission": "Chatbox needs access to your microphone to record voice messages."
+				}
 			]
 		]
 	}
