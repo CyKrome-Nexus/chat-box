@@ -10,7 +10,14 @@ import { useCallManager } from "@/src/hooks/useCallManager";
 
 const MessagesLayout = () => {
 	const params = useLocalSearchParams();
-	const user = params.user ? JSON.parse(params?.user as string) : null;
+	const user = (() => {
+		if (!params.user) return null;
+		try {
+			return JSON.parse(params.user as string);
+		} catch {
+			return null;
+		}
+	})();
 	const { startOutgoingCall } = useCallManager();
 
 	return (

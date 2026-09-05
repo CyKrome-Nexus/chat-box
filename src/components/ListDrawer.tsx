@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, Dimensions } from "react-native";
-import { PropsWithChildren } from "react";
+import { View, StyleSheet, useWindowDimensions } from "react-native";
+import { PropsWithChildren, useEffect } from "react";
 import Animated, {
 	useAnimatedStyle,
 	useSharedValue,
@@ -12,19 +12,30 @@ import {
 	PanGestureHandlerEventPayload,
 } from "react-native-gesture-handler";
 
-const MIN_HEIGHT = Dimensions.get("window").height * 0.85;
-const MAX_HEIGHT = Dimensions.get("window").height * 0.98;
-const START_HEIGHT =
-	Dimensions.get("window").height - Dimensions.get("window").height * 0.05;
-const START_TOP = Dimensions.get("window").height - START_HEIGHT;
-
 const ListDrawer = ({ children }: PropsWithChildren) => {
-	const sheetHeight = useSharedValue(START_HEIGHT);
-	const sheetTop = useSharedValue(START_TOP);
-	const panStartTop = useSharedValue(START_TOP);
-	const panStartHeight = useSharedValue(START_HEIGHT);
+	const { height: windowHeight } = useWindowDimensions();
+
+	const minHeight = windowHeight * 0.85;
+	const maxHeight = windowHeight * 0.98;
+	const startHeight = windowHeight * 0.95;
+	const startTop = windowHeight - startHeight;
+
+	const sheetHeight = useSharedValue(startHeight);
+	const sheetTop = useSharedValue(startTop);
+	const panStartTop = useSharedValue(startTop);
+	const panStartHeight = useSharedValue(startHeight);
+
+	// Re-snap to the open position whenever the window size changes
+	// (rotation, split-screen, foldable unfold) so the sheet never keeps
+	// stale bounds from the previous size.
+	useEffect(() => {
+		sheetHeight.value = withSpring(startHeight);
+		sheetTop.value = withSpring(startTop);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [windowHeight]);
 
 	const gesture = Gesture.Pan()
+		.activeOffsetY([-10, 10])
 		.onBegin(() => {
 			panStartTop.value = sheetTop.value;
 			panStartHeight.value = sheetHeight.value;
@@ -33,39 +44,26 @@ const ListDrawer = ({ children }: PropsWithChildren) => {
 			let nextTop = panStartTop.value + e.translationY;
 			let nextHeight = panStartHeight.value - e.translationY;
 			// Clamp for min and max
-			if (nextHeight < MIN_HEIGHT) {
-				nextHeight = MIN_HEIGHT;
-				nextTop = panStartTop.value + (panStartHeight.value - MIN_HEIGHT);
+			if (nextHeight < minHeight) {
+				nextHeight = minHeight;
+				nextTop = panStartTop.value + (panStartHeight.value - minHeight);
 			}
-			if (nextHeight > MAX_HEIGHT) {
-				nextHeight = MAX_HEIGHT;
-				nextTop = panStartTop.value - (MAX_HEIGHT - panStartHeight.value);
+			if (nextHeight > maxHeight) {
+				nextHeight = maxHeight;
+				nextTop = panStartTop.value - (maxHeight - panStartHeight.value);
 			}
 			sheetTop.value = nextTop;
 			sheetHeight.value = nextHeight;
-			// console.log(`
-			//     Next Top > ${nextTop}
-			//     Next Height > ${nextHeight}
-			//     Min Height > ${MIN_HEIGHT}
-			//     Max Height > ${MAX_HEIGHT}
-			//     Height > ${sheetHeight.value}
-
-			// `)
 		})
 		.onEnd(() => {
-			// decide which snap point is closer: MAX_HEIGHT or MIN_HEIGHT
-			if (MAX_HEIGHT - sheetHeight.value < sheetHeight.value - MIN_HEIGHT) {
-				sheetHeight.value = withSpring(MAX_HEIGHT);
-				sheetTop.value = withSpring(START_TOP); // adjust top if you're animating top too
+			// decide which snap point is closer: maxHeight or minHeight
+			if (maxHeight - sheetHeight.value < sheetHeight.value - minHeight) {
+				sheetHeight.value = withSpring(maxHeight);
+				sheetTop.value = withSpring(startTop);
 			} else {
-				sheetHeight.value = withSpring(MIN_HEIGHT);
-				sheetTop.value = withSpring(START_TOP + (START_HEIGHT - MIN_HEIGHT));
+				sheetHeight.value = withSpring(minHeight);
+				sheetTop.value = withSpring(startTop + (startHeight - minHeight));
 			}
-			// console.log(`
-			//     Min Height > ${MIN_HEIGHT}
-			//     Max Height > ${MAX_HEIGHT}
-			//     Height > ${sheetHeight.value}
-			// `)
 		});
 
 	const listAnimated = useAnimatedStyle(() => ({
@@ -74,11 +72,17 @@ const ListDrawer = ({ children }: PropsWithChildren) => {
 	}));
 
 	return (
-		// <View style={{ flex: 1 }}>
 		<Animated.View
 			style={[styles.container, listAnimated]}
 			pointerEvents="box-none"
 		>
+			{/*
+			 * The pan gesture is scoped to just this handle bar, not the
+			 * scrollable content below — that's what keeps it from fighting
+			 * nested FlatLists for vertical pan/scroll gestures. `activeOffsetY`
+			 * additionally requires a deliberate 10px vertical movement before
+			 * the drag activates, so a light tap on the handle doesn't jitter it.
+			 */}
 			<GestureDetector gesture={gesture}>
 				<View style={styles.topBar}>
 					<View style={styles.handle} />
@@ -86,7 +90,6 @@ const ListDrawer = ({ children }: PropsWithChildren) => {
 			</GestureDetector>
 			{children}
 		</Animated.View>
-		// </View>
 	);
 };
 
@@ -111,16 +114,6 @@ const styles = StyleSheet.create({
 		width: 50,
 		borderRadius: 50,
 		backgroundColor: "#E6E6E6",
-	},
-	chatListFooterContainer: {
-		padding: 20,
-		justifyContent: "center",
-		alignItems: "center",
-		// borderColor: 'red',
-		// borderWidth: 3,
-	},
-	chatListFooterText: {
-		color: "#797C7B",
 	},
 });
 
