@@ -20,6 +20,7 @@ import {
 import { unarchiveChat } from "@/src/redux/features/chatsSlice";
 import { computeExpiresAt } from "@/src/lib/security/disappearingMessages";
 import { showMessageNotification } from "@/src/lib/notifications/messageNotifications";
+import { decryptFromConversation, isEncryptedEnvelope } from "@/src/lib/crypto/sessionManager";
 
 /**
  * The realtime server URL. Configure via an EXPO_PUBLIC_ env var so it can
@@ -85,9 +86,21 @@ export const useRealtimeConnection = (currentUserId?: string) => {
             });
         };
 
-        const onMessageReceive = (payload: IMessageReceiveEvent) => {
+        const onMessageReceive = async (payload: IMessageReceiveEvent) => {
             const state: any = store.getState();
             const chat = state.chats.chats.find((c: any) => c.id === payload.conversationId);
+
+            // Wire payloads from an E2EE-encrypted sender are ciphertext
+            // envelopes (see e2ee-crypto.md) — decrypt back to plaintext
+            // before anything else touches the message text. Falls back to
+            // the raw text for senders/servers not sending an envelope
+            // (e.g. this same message-receive path is also exercised by
+            // demo/local flows that never encrypted in the first place).
+            const text = isEncryptedEnvelope(payload.text)
+                ? await decryptFromConversation(payload.conversationId, payload.text).catch(
+                      () => "[Unable to decrypt message]"
+                  )
+                : payload.text;
 
             dispatch(
                 receiveMessage({
@@ -95,7 +108,7 @@ export const useRealtimeConnection = (currentUserId?: string) => {
                     message: {
                         id: payload.messageId,
                         conversationId: payload.conversationId,
-                        text: payload.text,
+                        text,
                         type: "receiver",
                         timestamp: payload.timestamp,
                         expiresAt: computeExpiresAt(chat?.disappearingTimer, payload.timestamp),
@@ -119,7 +132,7 @@ export const useRealtimeConnection = (currentUserId?: string) => {
                         conversationId: payload.conversationId,
                         chatName: chat?.name || "New message",
                         avatarUrl: chat?.avatar?.url,
-                        text: payload.text,
+                        text,
                     })
                 );
             } else {
@@ -127,7 +140,7 @@ export const useRealtimeConnection = (currentUserId?: string) => {
                     conversationId: payload.conversationId,
                     chatName: chat?.name || "New message",
                     chatAvatarUrl: chat?.avatar?.url,
-                    messageText: payload.text,
+                    messageText: text,
                 });
             }
         };
