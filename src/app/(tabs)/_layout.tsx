@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 
 import IconSVG from "@/src/components/images/IconSVG";
-import Colors from "@/src/constants/Colors";
 import {
 	addCall,
 	addContact,
@@ -21,12 +20,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { IUser } from "@/src/interfaces/user-interface";
 import { setShowAddContactModal } from "@/src/redux/features/contactsSlice";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
+import { useAppTheme } from "@/src/lib/theme/ThemeContext";
 
 export default function TabLayout() {
 	const user = useSelector((state: { user: IUser | null }) => state.user);
 	const totalUnread = useSelector((state: any) =>
 		(state.chats.chats as IChatRibbon[]).reduce((sum, c) => sum + (c.notificationCount || 0), 0)
 	);
+	const theme = useAppTheme();
 
 	// Guards this whole group against unauthenticated access — e.g. a deep
 	// link straight into "(tabs)/messages" with no session.
@@ -80,7 +81,7 @@ export default function TabLayout() {
 						<IconSVG svg={message} includeBorder={false} focused={focused} />
 					),
 					tabBarBadge: totalUnread > 0 ? totalUnread : undefined,
-					tabBarActiveTintColor: Colors.focused,
+					tabBarActiveTintColor: theme.accent,
 					headerRight: () => {
 						const user = useSelector((state: { user: IUser }) => state.user);
 						return (
@@ -112,7 +113,7 @@ export default function TabLayout() {
 					tabBarIcon: ({ focused }) => (
 						<IconSVG svg={phone} includeBorder={false} focused={focused} />
 					),
-					tabBarActiveTintColor: Colors.focused,
+					tabBarActiveTintColor: theme.accent,
 					headerRight: () => (
 						<>
 							<View style={{ marginRight: 30 }}>
@@ -152,7 +153,7 @@ export default function TabLayout() {
 							</>
 						);
 					},
-					tabBarActiveTintColor: Colors.focused,
+					tabBarActiveTintColor: theme.accent,
 				}}
 			/>
 			<Tabs.Screen
@@ -162,7 +163,7 @@ export default function TabLayout() {
 					tabBarIcon: ({ focused }) => (
 						<IconSVG svg={settings} includeBorder={false} focused={focused} />
 					),
-					tabBarActiveTintColor: Colors.focused,
+					tabBarActiveTintColor: theme.accent,
 					headerLeft: () => {
 						return (
 							<>

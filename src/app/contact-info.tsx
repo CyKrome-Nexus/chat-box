@@ -95,6 +95,20 @@ const ContactInfoScreen = () => {
 				<Text style={styles.rowLabel}>Encryption</Text>
 				<Ionicons name="chevron-forward" size={18} color="#797C7B" />
 			</TouchableOpacity>
+
+			<TouchableOpacity
+				style={styles.row}
+				onPress={() =>
+					router.push({
+						pathname: "/settings-wallpaper",
+						params: { conversationId, name: user?.name || "" },
+					})
+				}
+			>
+				<Ionicons name="image-outline" size={22} color={Colors.focused} />
+				<Text style={styles.rowLabel}>Chat Wallpaper</Text>
+				<Ionicons name="chevron-forward" size={18} color="#797C7B" />
+			</TouchableOpacity>
 		</View>
 	);
 };

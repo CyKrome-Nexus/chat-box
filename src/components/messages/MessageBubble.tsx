@@ -20,6 +20,7 @@ import AttachmentContent from "./AttachmentContent";
 import { IBubbleAnchor } from "./MessageActionsOverlay";
 import HighlightedText from "@/src/components/search/HighlightedText";
 import { useDisplayScale } from "@/src/lib/display/useDisplayScale";
+import { useAppTheme } from "@/src/lib/theme/ThemeContext";
 
 const SWIPE_REPLY_THRESHOLD = 56;
 const SWIPE_REPLY_MAX = 84;
@@ -88,6 +89,7 @@ const MessageBubble = ({
 }) => {
 	const isSender = message.type === "sender";
 	const { scaleFont } = useDisplayScale();
+	const theme = useAppTheme();
 	const translateX = useSharedValue(0);
 	const hasTriggeredHaptic = useRef(false);
 	const bubbleRowRef = useRef<View>(null);
@@ -164,8 +166,10 @@ const MessageBubble = ({
 					<View
 						style={[
 							styles.bubble,
-							isSender ? styles.senderBubble : styles.receiverBubble,
-							highlighted && styles.bubbleHighlighted,
+							isSender
+								? { backgroundColor: theme.accent, borderBottomRightRadius: 4 }
+								: { backgroundColor: theme.colors.incomingBubble, borderBottomLeftRadius: 4 },
+							highlighted && { borderWidth: 2, borderColor: theme.accent },
 						]}
 					>
 						{message.deletedForEveryone ? (
@@ -206,11 +210,19 @@ const MessageBubble = ({
 									<HighlightedText
 										text={message.text}
 										query={searchQuery}
-										style={StyleSheet.flatten([isSender ? styles.senderText : styles.receiverText, { fontSize: scaleFont(16) }])}
+										style={StyleSheet.flatten([
+											isSender ? styles.senderText : { color: theme.colors.incomingBubbleText },
+											{ fontSize: scaleFont(16) },
+										])}
 										highlightStyle={styles.searchHighlight}
 									/>
 								) : (
-									<Text style={[isSender ? styles.senderText : styles.receiverText, { fontSize: scaleFont(16) }]}>
+									<Text
+										style={[
+											isSender ? styles.senderText : { color: theme.colors.incomingBubbleText },
+											{ fontSize: scaleFont(16) },
+										]}
+									>
 										{message.text}
 									</Text>
 								))}

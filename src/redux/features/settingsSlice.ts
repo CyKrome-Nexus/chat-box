@@ -1,6 +1,12 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-export type TTheme = "system" | "light" | "dark";
+import { DEFAULT_ACCENT_COLOR } from "@/src/lib/theme/accentColors";
+import { DEFAULT_WALLPAPER, IWallpaperConfig } from "@/src/lib/wallpaper/wallpaperTypes";
+import { TThemeMode } from "@/src/lib/theme/palettes";
+
+/** @deprecated use TThemeMode (adds oledBlack/sepia) — kept as an alias so
+ * existing imports of TTheme keep compiling. */
+export type TTheme = TThemeMode;
 export type TVisibility = "everyone" | "contacts" | "nobody";
 export type TAutoLockTimeout = "immediately" | "1min" | "15min" | "1hour";
 
@@ -20,7 +26,16 @@ interface SettingsState {
         messagePreview: boolean;
         groupNotifications: boolean;
     };
-    theme: TTheme;
+    theme: TThemeMode;
+    /** Theming Engine — see docs/architecture/theming-engine.md. */
+    appearance: {
+        accentColor: string;
+    };
+    /** Chat Wallpaper Studio — see docs/architecture/theming-engine.md. */
+    wallpaper: {
+        global: IWallpaperConfig;
+        perChat: Record<string, IWallpaperConfig>;
+    };
     autoDownload: {
         photos: boolean;
         videos: boolean;
@@ -62,6 +77,13 @@ const initialState: SettingsState = {
         groupNotifications: true,
     },
     theme: "system",
+    appearance: {
+        accentColor: DEFAULT_ACCENT_COLOR,
+    },
+    wallpaper: {
+        global: DEFAULT_WALLPAPER,
+        perChat: {},
+    },
     autoDownload: {
         photos: true,
         videos: false,
@@ -94,6 +116,11 @@ export const settingsSlice = createSlice({
             chat: { ...state.chat, ...action.payload.chat },
             security: { ...state.security, ...action.payload.security },
             display: { ...state.display, ...action.payload.display },
+            appearance: { ...state.appearance, ...action.payload.appearance },
+            wallpaper: {
+                global: action.payload.wallpaper?.global || state.wallpaper.global,
+                perChat: { ...state.wallpaper.perChat, ...action.payload.wallpaper?.perChat },
+            },
         }),
         setPrivacyPref: (
             state,
@@ -122,8 +149,20 @@ export const settingsSlice = createSlice({
         ) => {
             state.notifications[action.payload.key] = action.payload.value;
         },
-        setTheme: (state, action: PayloadAction<TTheme>) => {
+        setTheme: (state, action: PayloadAction<TThemeMode>) => {
             state.theme = action.payload;
+        },
+        setAccentColor: (state, action: PayloadAction<string>) => {
+            state.appearance.accentColor = action.payload;
+        },
+        setGlobalWallpaper: (state, action: PayloadAction<IWallpaperConfig>) => {
+            state.wallpaper.global = action.payload;
+        },
+        setChatWallpaper: (state, action: PayloadAction<{ conversationId: string; config: IWallpaperConfig }>) => {
+            state.wallpaper.perChat[action.payload.conversationId] = action.payload.config;
+        },
+        clearChatWallpaper: (state, action: PayloadAction<string>) => {
+            delete state.wallpaper.perChat[action.payload];
         },
         setAutoDownloadPref: (
             state,
@@ -166,5 +205,9 @@ export const {
     setAutoLockTimeout,
     setZoomLevel,
     setUseSystemTextSize,
+    setAccentColor,
+    setGlobalWallpaper,
+    setChatWallpaper,
+    clearChatWallpaper,
 } = settingsSlice.actions;
 export default settingsSlice.reducer;
