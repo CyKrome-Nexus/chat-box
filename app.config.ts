@@ -111,6 +111,7 @@ const config: ExpoConfig = {
             },
         ],
         "./plugins/withEncryptedPush.js",
+        "./plugins/withAndroidGradleMemory.js",
     ],
 };
 
