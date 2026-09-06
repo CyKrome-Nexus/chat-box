@@ -29,35 +29,53 @@ export const useCallKeepIntegration = () => {
         if (isSetupRef.current) return;
         isSetupRef.current = true;
 
-        RNCallKeep.setup({
-            ios: {
-                appName: "Chatbox",
-                supportsVideo: true,
-                includesCallsInRecents: true,
-            },
-            android: {
-                alertTitle: "Phone account permission",
-                alertDescription: "Chatbox needs access to manage calls to show the native call screen.",
-                cancelButton: "Cancel",
-                okButton: "OK",
-                additionalPermissions: [],
-                selfManaged: true,
-            },
-        }).catch(() => {
-            // No-op: CallKeep's native module isn't linked (e.g. running in
-            // Expo Go / a dev client built before this feature was added).
-        });
+        // Every RNCallKeep access below is wrapped in try/catch, not just a
+        // `.catch()` on setup()'s promise: under the New Architecture,
+        // merely accessing a property on a broken/incompatible native
+        // module (e.g. this build's react-native-callkeep, whose Android
+        // side exposes two same-named `displayIncomingCall` overloads,
+        // which the new TurboModule interop rejects) throws *synchronously*
+        // at property-access time — before `.setup(...).catch(...)` ever
+        // gets a chance to attach, let alone run. A `.catch()` alone left
+        // this crashing the whole JS thread on every app start. See
+        // docs/architecture/audio-calling-engine.md.
+        try {
+            RNCallKeep.setup({
+                ios: {
+                    appName: "Chatbox",
+                    supportsVideo: true,
+                    includesCallsInRecents: true,
+                },
+                android: {
+                    alertTitle: "Phone account permission",
+                    alertDescription: "Chatbox needs access to manage calls to show the native call screen.",
+                    cancelButton: "Cancel",
+                    okButton: "OK",
+                    additionalPermissions: [],
+                    selfManaged: true,
+                },
+            }).catch(() => {
+                // No-op: CallKeep's native module isn't linked (e.g. running in
+                // Expo Go / a dev client built before this feature was added).
+            });
 
-        RNCallKeep.addEventListener("answerCall", () => {
-            dispatch(markCallConnected());
-        });
-        RNCallKeep.addEventListener("endCall", () => {
-            dispatch(endCall());
-        });
+            RNCallKeep.addEventListener("answerCall", () => {
+                dispatch(markCallConnected());
+            });
+            RNCallKeep.addEventListener("endCall", () => {
+                dispatch(endCall());
+            });
+        } catch {
+            // No-op: see the comment above this try block.
+        }
 
         return () => {
-            RNCallKeep.removeEventListener("answerCall");
-            RNCallKeep.removeEventListener("endCall");
+            try {
+                RNCallKeep.removeEventListener("answerCall");
+                RNCallKeep.removeEventListener("endCall");
+            } catch {
+                // No-op: see the comment above the setup try block.
+            }
         };
     }, [dispatch]);
 
