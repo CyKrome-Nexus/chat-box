@@ -95,7 +95,10 @@ const MessageBubble = ({
 	const bubbleRowRef = useRef<View>(null);
 
 	const triggerReply = () => onSwipeReply?.(message);
-	const triggerHaptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+	// Swipe-to-reply threshold reached — Medium per the haptics engine spec
+	// (docs/architecture/sound-haptics.md), distinct from the Light taps used
+	// for simple button presses elsewhere.
+	const triggerHaptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
 	const triggerLongPress = () => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

@@ -39,6 +39,14 @@ const SettingsNotifications = () => {
 				value={notifications.groupNotifications}
 				onValueChange={(value) => dispatch(setNotificationPref({ key: "groupNotifications", value }))}
 			/>
+
+			<Text style={styles.sectionTitle}>In-App</Text>
+			<SettingToggleRow
+				label="In-App Sounds"
+				description="Play sound effects for sent/received messages, voice notes, and calls while the app is open"
+				value={notifications.inAppSounds}
+				onValueChange={(value) => dispatch(setNotificationPref({ key: "inAppSounds", value }))}
+			/>
 		</ScrollView>
 	);
 };

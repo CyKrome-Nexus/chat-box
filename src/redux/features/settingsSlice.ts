@@ -10,6 +10,15 @@ export type TTheme = TThemeMode;
 export type TVisibility = "everyone" | "contacts" | "nobody";
 export type TAutoLockTimeout = "immediately" | "1min" | "15min" | "1hour";
 export type TPhoneDiscoverability = "everyone" | "contacts";
+export type TVibrationPattern = "default" | "short" | "long" | "off";
+
+export interface ICustomNotificationConfig {
+    /** Key into MESSAGE_TONES (bundled) or a content:// / file:// URI picked
+     * from device storage — see docs/architecture/sound-haptics.md. */
+    messageTone?: string;
+    callRingtone?: string;
+    vibrationPattern: TVibrationPattern;
+}
 
 interface SettingsState {
     privacy: {
@@ -29,7 +38,16 @@ interface SettingsState {
         vibration: boolean;
         messagePreview: boolean;
         groupNotifications: boolean;
+        /** Sound/Haptics Engine — see docs/architecture/sound-haptics.md.
+         * Distinct from `sound` above, which gates the system push
+         * notification's own sound; this gates in-app SFX (message sent/
+         * received, voice note start/cancel, call ringing) while the app is
+         * open and foregrounded. */
+        inAppSounds: boolean;
     };
+    /** Per-conversation notification overrides — see
+     * docs/architecture/sound-haptics.md. */
+    customNotifications: Record<string, ICustomNotificationConfig>;
     theme: TThemeMode;
     /** Theming Engine — see docs/architecture/theming-engine.md. */
     appearance: {
@@ -81,7 +99,9 @@ const initialState: SettingsState = {
         vibration: true,
         messagePreview: true,
         groupNotifications: true,
+        inAppSounds: true,
     },
+    customNotifications: {},
     theme: "system",
     appearance: {
         accentColor: DEFAULT_ACCENT_COLOR,
@@ -123,6 +143,8 @@ export const settingsSlice = createSlice({
             security: { ...state.security, ...action.payload.security },
             display: { ...state.display, ...action.payload.display },
             appearance: { ...state.appearance, ...action.payload.appearance },
+            notifications: { ...state.notifications, ...action.payload.notifications },
+            customNotifications: { ...state.customNotifications, ...action.payload.customNotifications },
             wallpaper: {
                 global: action.payload.wallpaper?.global || state.wallpaper.global,
                 perChat: { ...state.wallpaper.perChat, ...action.payload.wallpaper?.perChat },
@@ -145,6 +167,15 @@ export const settingsSlice = createSlice({
         },
         setDiscoverableByPhoneNumber: (state, action: PayloadAction<TPhoneDiscoverability>) => {
             state.privacy.discoverableByPhoneNumber = action.payload;
+        },
+        setCustomNotificationConfig: (
+            state,
+            action: PayloadAction<{ conversationId: string; config: ICustomNotificationConfig }>
+        ) => {
+            state.customNotifications[action.payload.conversationId] = action.payload.config;
+        },
+        clearCustomNotificationConfig: (state, action: PayloadAction<string>) => {
+            delete state.customNotifications[action.payload];
         },
         setStatusPrivacy: (
             state,
@@ -219,5 +250,7 @@ export const {
     setChatWallpaper,
     clearChatWallpaper,
     setDiscoverableByPhoneNumber,
+    setCustomNotificationConfig,
+    clearCustomNotificationConfig,
 } = settingsSlice.actions;
 export default settingsSlice.reducer;

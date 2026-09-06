@@ -7,6 +7,8 @@ import {
     useAudioRecorderState,
 } from "expo-audio";
 
+import { playSoundEffect } from "@/src/lib/audio/soundEffects";
+
 const RECORDING_OPTIONS = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
 const METERING_POLL_MS = 66; // ~15 samples/sec, per the ticket's 10-20/sec target
 const MAX_WAVEFORM_SAMPLES = 200; // ~13s of history at the rate above before it starts scrolling
@@ -50,6 +52,7 @@ export const useVoiceRecorder = () => {
         setIsPaused(false);
         await recorder.prepareToRecordAsync();
         recorder.record();
+        playSoundEffect("voiceNoteStart");
         return true;
     };
 
@@ -77,6 +80,7 @@ export const useVoiceRecorder = () => {
         await recorder.stop();
         setWaveform([]);
         setIsPaused(false);
+        playSoundEffect("voiceNoteCancel");
     };
 
     return {
