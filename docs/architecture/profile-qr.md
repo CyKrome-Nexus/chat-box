@@ -17,10 +17,15 @@ A modal route reached by tapping the avatar in Settings or the Home tab header. 
 
 ## QR Code (`src/app/qr-code.tsx`)
 
+**Updated by issue #43** — this used to encode `user.username` (the private login identifier:
+phone number or email) directly into a public, shareable QR code/link, since there was no public
+handle concept yet. That's fixed now: it encodes `user.handle` (the public `@username` — see
+[username-system.md](./username-system.md)) instead, and shows a "claim a username" prompt with no
+link/QR at all until one exists, so the private identifier is never exposed through this screen.
+
 Renders a QR code (via `react-native-qrcode-svg`, chosen because it draws directly with the
 already-installed `react-native-svg` — no extra native module) encoding a profile link built by
-`src/lib/profile/profileLink.ts`: `buildProfileLink(username)` → `https://chatbox.link/@username`
-(the same link scheme documented as the target design in `docs/features/auth-profile.md`).
+`src/lib/profile/profileLink.ts`: `buildProfileLink(handle)` → `https://chatbox.link/@handle`.
 
 - **Copy Link** — `expo-clipboard`.
 - **Share** — React Native's built-in `Share.share()`, sharing the link as text. Sharing the QR
@@ -31,10 +36,10 @@ already-installed `react-native-svg` — no extra native module) encoding a prof
 
 Uses `expo-camera`'s `CameraView` with `barcodeScannerSettings={{ barcodeTypes: ["qr"] }}` — no
 separate `expo-barcode-scanner` package needed (deprecated in favor of `expo-camera`'s built-in
-scanning). On a successful scan, `parseProfileLink` extracts the `@username` from the link; if it
-matches, the scanner navigates straight into `Chat`.
+scanning). On a successful scan, `parseProfileLink` extracts the `@handle` from the link.
 
-There is no backend to resolve a scanned username into a real profile (avatar, id, etc.), so the
-scanned username is used directly as both the chat's `id` and display `name` — a placeholder until
-a real user-lookup API exists. A QR value that isn't a `chatbox.link` profile link shows an alert
-instead of silently failing or crashing.
+**Updated by issue #43** — the extracted handle is now resolved through a real
+`lookupByHandle()` registry lookup (see [username-system.md](./username-system.md)) instead of
+being trusted directly as both the chat's `id` and display name; an unregistered handle now shows
+a "username not found" alert. A QR value that isn't a `chatbox.link`/`chatbox.me` profile link
+still shows the original "not a Chatbox QR code" alert instead of silently failing or crashing.

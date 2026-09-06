@@ -9,6 +9,7 @@ import { TThemeMode } from "@/src/lib/theme/palettes";
 export type TTheme = TThemeMode;
 export type TVisibility = "everyone" | "contacts" | "nobody";
 export type TAutoLockTimeout = "immediately" | "1min" | "15min" | "1hour";
+export type TPhoneDiscoverability = "everyone" | "contacts";
 
 interface SettingsState {
     privacy: {
@@ -19,6 +20,9 @@ interface SettingsState {
         twoFactorEnabled: boolean;
         /** Default audience for new status updates — see stories.md. */
         statusPrivacy: "contacts" | "contactsExcept" | "onlyShareWith";
+        /** Username System — see docs/architecture/username-system.md. */
+        phoneNumberVisibility: TVisibility;
+        discoverableByPhoneNumber: TPhoneDiscoverability;
     };
     notifications: {
         sound: boolean;
@@ -69,6 +73,8 @@ const initialState: SettingsState = {
         readReceipts: true,
         twoFactorEnabled: false,
         statusPrivacy: "contacts",
+        phoneNumberVisibility: "contacts",
+        discoverableByPhoneNumber: "everyone",
     },
     notifications: {
         sound: true,
@@ -131,11 +137,14 @@ export const settingsSlice = createSlice({
         setPrivacyVisibility: (
             state,
             action: PayloadAction<{
-                key: "lastSeenVisibility" | "profilePhotoVisibility" | "aboutVisibility";
+                key: "lastSeenVisibility" | "profilePhotoVisibility" | "aboutVisibility" | "phoneNumberVisibility";
                 value: TVisibility;
             }>
         ) => {
             state.privacy[action.payload.key] = action.payload.value;
+        },
+        setDiscoverableByPhoneNumber: (state, action: PayloadAction<TPhoneDiscoverability>) => {
+            state.privacy.discoverableByPhoneNumber = action.payload;
         },
         setStatusPrivacy: (
             state,
@@ -209,5 +218,6 @@ export const {
     setGlobalWallpaper,
     setChatWallpaper,
     clearChatWallpaper,
+    setDiscoverableByPhoneNumber,
 } = settingsSlice.actions;
 export default settingsSlice.reducer;

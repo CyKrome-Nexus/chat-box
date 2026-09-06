@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
 import { useSelector } from "react-redux";
@@ -10,6 +10,7 @@ import Colors from "@/src/constants/Colors";
 import { useDeviceContacts } from "@/src/hooks/useDeviceContacts";
 import { useGlobalSearch, TSearchFilter } from "@/src/hooks/useGlobalSearch";
 import { IContactRibbon } from "@/src/interfaces/list-interface";
+import { IUsernameRecord, searchUsernames } from "@/src/lib/username/usernameRegistry";
 
 const FILTERS: { key: TSearchFilter; label: string }[] = [
 	{ key: "chats", label: "Chats" },
@@ -33,8 +34,27 @@ const SearchScreen = () => {
 
 	const { chats, contacts, messages, media } = useGlobalSearch(query, filter, allContacts);
 
+	const isUsernameQuery = query.trim().startsWith("@");
+	const [usernameResults, setUsernameResults] = useState<IUsernameRecord[]>([]);
+
+	useEffect(() => {
+		if (!isUsernameQuery) {
+			setUsernameResults([]);
+			return;
+		}
+		let cancelled = false;
+		searchUsernames(query.trim().slice(1)).then((results) => {
+			if (!cancelled) setUsernameResults(results);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [isUsernameQuery, query]);
+
 	const hasQuery = query.trim().length > 0;
-	const hasResults = chats.length || contacts.length || messages.length || media.length;
+	const hasResults = isUsernameQuery
+		? usernameResults.length > 0
+		: chats.length || contacts.length || messages.length || media.length;
 
 	return (
 		<View style={styles.container}>
@@ -46,7 +66,7 @@ const SearchScreen = () => {
 					<Ionicons name="search" size={16} color="#797C7B" />
 					<TextInput
 						style={styles.input}
-						placeholder="Search chats, contacts, messages…"
+						placeholder="Search chats, messages, or @username…"
 						placeholderTextColor="#797C7B"
 						value={query}
 						onChangeText={setQuery}
@@ -89,6 +109,37 @@ const SearchScreen = () => {
 				<View style={styles.emptyState}>
 					<Text style={styles.emptyStateText}>No results for "{query}"</Text>
 				</View>
+			) : isUsernameQuery ? (
+				<FlatList
+					data={usernameResults}
+					keyExtractor={(item) => item.userId}
+					contentContainerStyle={{ paddingBottom: 40 }}
+					ListHeaderComponent={<Text style={styles.sectionLabel}>Usernames</Text>}
+					renderItem={({ item }) => (
+						<TouchableOpacity
+							style={styles.resultRow}
+							onPress={() =>
+								router.push({
+									pathname: "/messages/Chat",
+									params: {
+										user: JSON.stringify({
+											id: item.userId,
+											name: item.name,
+											handle: item.handle,
+											avatar: { url: item.avatarUrl || "" },
+										}),
+									},
+								})
+							}
+						>
+							<Avatar data={{ url: item.avatarUrl }} size={40} />
+							<View style={{ flex: 1 }}>
+								<Text style={styles.resultTitle}>{item.name}</Text>
+								<Text style={styles.resultSubtitle}>@{item.handle}</Text>
+							</View>
+						</TouchableOpacity>
+					)}
+				/>
 			) : (
 				<FlatList
 					data={[

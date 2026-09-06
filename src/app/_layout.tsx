@@ -80,6 +80,7 @@ const AppGate = () => {
 				<Stack.Screen name="group-create-details" options={{ presentation: "card" }} />
 				<Stack.Screen name="broadcast-create-details" options={{ presentation: "card" }} />
 				<Stack.Screen name="join/[code]" options={{ presentation: "fullScreenModal" }} />
+				<Stack.Screen name="u/[handle]" options={{ presentation: "fullScreenModal" }} />
 				<Stack.Screen name="safety-number" options={{ presentation: "card" }} />
 				<Stack.Screen name="sticker-packs" options={{ presentation: "card" }} />
 				<Stack.Screen name="sticker-maker" options={{ presentation: "fullScreenModal" }} />
