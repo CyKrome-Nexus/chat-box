@@ -1,5 +1,5 @@
 import { router, Stack, usePathname } from "expo-router";
-import { TouchableOpacity } from "react-native";
+import { TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 
 import { backArrow } from "@/src/constants/svgs/icons";
@@ -10,6 +10,15 @@ import { useEffect } from "react";
 const RootLayout = () => {
 	const user = useSelector((state: { user: IUser | null }) => state.user);
 	const pathname = usePathname();
+	// Android gesture navigation can cancel a normal press in the left-edge zone.
+	// Acting on touch-down keeps the arrow in place and fires before that cancellation.
+	const handleBackPress = () => {
+		if (router.canGoBack()) {
+			router.back();
+		} else {
+			router.push("/");
+		}
+	};
 
 	// The root Stack (src/app/_layout.tsx) only renders this group once
 	// session hydration has finished, so `user` here is always the final
@@ -52,19 +61,14 @@ const RootLayout = () => {
 				options={{
 					title: "",
 					headerShadowVisible: false,
-					headerBackground: () => <></>,
+					headerBackground: () => <View pointerEvents="none" style={{ flex: 1 }} />,
 					headerBackVisible: false,
 					headerLeft: () => {
 						return (
 							<>
 								<TouchableOpacity
-									onPress={() => {
-										if (router.canGoBack()) {
-											router.back();
-										} else {
-											router.push("/");
-										}
-									}}
+									style={{ alignItems: "flex-start", paddingRight: 40 }}
+									onPressIn={handleBackPress}
 								>
 									<IconSVG svg={backArrow} includeBorder={false} />
 								</TouchableOpacity>
@@ -78,19 +82,14 @@ const RootLayout = () => {
 				options={{
 					title: "",
 					headerShadowVisible: false,
-					headerBackground: () => <></>,
+					headerBackground: () => <View pointerEvents="none" style={{ flex: 1 }} />,
 					headerBackVisible: false,
 					headerLeft: () => {
 						return (
 							<>
 								<TouchableOpacity
-									onPress={() => {
-										if (router.canGoBack()) {
-											router.back();
-										} else {
-											router.push("/");
-										}
-									}}
+									style={{ alignItems: "flex-start", paddingRight: 40 }}
+									onPressIn={handleBackPress}
 								>
 									<IconSVG svg={backArrow} includeBorder={false} />
 								</TouchableOpacity>
