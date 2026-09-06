@@ -44,7 +44,7 @@ const AppGate = () => {
 	useOfflineDbSync();
 	useNetworkSync();
 	useRealtimeConnection(userId);
-	useCallKeepIntegration();
+	useCallKeepIntegration(!!userId);
 	useIncomingCallNotification();
 	useDisappearingMessagesSweep();
 	useStoriesExpirySweep();

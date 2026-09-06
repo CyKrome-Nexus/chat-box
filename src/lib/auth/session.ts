@@ -11,11 +11,23 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  *
  * Multi-Account (see docs/architecture/multi-account.md): each linked
  * account gets its own session slot, keyed by account id — "default" keeps
- * the original unsuffixed `chatbox:session` key so existing installs don't
+ * the original unsuffixed `chatbox.session` key so existing installs don't
  * lose their session on upgrade; every account added after uses
- * `chatbox:session:<accountId>`.
+ * `chatbox.session.<accountId>`.
+ *
+ * The key must contain only alphanumerics, ".", "-", and "_" —
+ * `expo-secure-store` (iOS Keychain / Android Keystore) rejects any other
+ * character, including ":". The original key here was `chatbox:session`,
+ * which is actually invalid and made every `getItemAsync`/`setItemAsync`
+ * call throw; this was never caught before because this was the first time
+ * this app was ever run as a real build rather than only type-checked (see
+ * docs/architecture/versioning.md's sibling bugs found the same way). The
+ * thrown exception, unhandled inside `useSessionPersistence`'s startup
+ * effect, silently prevented `session.status` from ever reaching "ready" —
+ * which is what actually kept the splash screen up forever, not anything
+ * about the splash screen itself.
  */
-const sessionKey = (accountId: string) => (accountId === "default" ? "chatbox:session" : `chatbox:session:${accountId}`);
+const sessionKey = (accountId: string) => (accountId === "default" ? "chatbox.session" : `chatbox.session.${accountId}`);
 
 export interface ISessionUser {
     name: string;
