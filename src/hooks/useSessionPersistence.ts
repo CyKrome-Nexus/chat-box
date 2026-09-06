@@ -24,6 +24,14 @@ import { hydrateAccounts } from "@/src/redux/features/accountsSlice";
  * the database once session status is "ready" — see that hook) never races
  * this and reads the wrong account's database on a cold start where the
  * last-active account wasn't "default".
+ *
+ * The whole body is wrapped in try/catch, dispatching "ready" (as logged
+ * out) even on failure: a storage read throwing here used to leave
+ * `session.status` stuck at "loading" forever, which is what kept the
+ * splash screen up indefinitely with no error surfaced anywhere — see the
+ * comment on `sessionKey` in `session.ts` for the actual bug that triggered
+ * this. A single account's corrupted/unreadable storage should degrade to
+ * a logged-out state, never brick the entire app.
  */
 export const useSessionPersistence = () => {
     const dispatch = useDispatch();
@@ -33,15 +41,21 @@ export const useSessionPersistence = () => {
 
     useEffect(() => {
         (async () => {
-            const registry = await getAccountsRegistry();
-            dispatch(hydrateAccounts(registry));
+            try {
+                const registry = await getAccountsRegistry();
+                dispatch(hydrateAccounts(registry));
 
-            setActiveDatabaseAccount(registry.activeAccountId);
-            setActiveIdentityAccount(registry.activeAccountId);
+                setActiveDatabaseAccount(registry.activeAccountId);
+                setActiveIdentityAccount(registry.activeAccountId);
 
-            const session = await getSession(registry.activeAccountId);
-            if (session) dispatch(updateUser(session));
-            dispatch(setSessionStatus("ready"));
+                const session = await getSession(registry.activeAccountId);
+                if (session) dispatch(updateUser(session));
+            } catch {
+                // Falls through to "ready" as logged out — see the doc
+                // comment above.
+            } finally {
+                dispatch(setSessionStatus("ready"));
+            }
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

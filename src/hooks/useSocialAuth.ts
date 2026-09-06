@@ -32,6 +32,18 @@ export const useSocialAuth = (onSuccess: (profile: ISocialProfile) => void) => {
         iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
         androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        // Same "unconfigured" placeholder fallback the Facebook request
+        // below already uses. Without this, expo-auth-session's Google
+        // provider throws synchronously from inside this hook itself
+        // — "Client Id property `androidClientId` must be defined" — the
+        // instant this component renders on Android, regardless of whether
+        // the user ever taps "Sign in with Google". `googleConfigured` below
+        // still correctly gates the actual sign-in prompt.
+        clientId:
+            process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
+            process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ||
+            process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
+            "unconfigured",
     });
 
     const [, facebookResponse, promptFacebookAsync] = Facebook.useAuthRequest({

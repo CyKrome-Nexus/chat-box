@@ -18,15 +18,26 @@ import { endCall, markCallConnected } from "@/src/redux/features/callSlice";
  * send them. Neither exists in this repo — see
  * docs/architecture/audio-calling-engine.md for what a real deployment
  * still needs to wire up.
+ *
+ * `enabled` gates the actual `RNCallKeep.setup()` call on the user being
+ * signed in (see `_layout.tsx`'s `AppGate`, which passes `!!userId`) rather
+ * than running it unconditionally the instant the app process starts.
+ * `setup()`'s `selfManaged: true` mode registers a real Android
+ * PhoneAccount and can trigger a real system permission dialog
+ * (READ_PHONE_STATE/CALL_PHONE/RECORD_AUDIO) — doing that before the splash
+ * screen has even cleared, while nothing is signed in yet, held the app's
+ * very first frame in `DRAW_PENDING` behind that dialog. Deferring to "user
+ * is authenticated" is the same trigger point `useRealtimeConnection`
+ * already uses for a real bridge connection, for the same reason.
  */
-export const useCallKeepIntegration = () => {
+export const useCallKeepIntegration = (enabled: boolean) => {
     const dispatch = useDispatch();
     const activeCall = useSelector((state: any) => state.call.activeCall);
     const isSetupRef = useRef(false);
     const currentUuidRef = useRef<string | null>(null);
 
     useEffect(() => {
-        if (isSetupRef.current) return;
+        if (!enabled || isSetupRef.current) return;
         isSetupRef.current = true;
 
         // Every RNCallKeep access below is wrapped in try/catch, not just a
@@ -77,7 +88,7 @@ export const useCallKeepIntegration = () => {
                 // No-op: see the comment above the setup try block.
             }
         };
-    }, [dispatch]);
+    }, [dispatch, enabled]);
 
     // Mirror our own call state into the native UI.
     useEffect(() => {
