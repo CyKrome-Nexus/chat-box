@@ -8,6 +8,7 @@ import StickerView from "./StickerView";
 import Colors from "@/src/constants/Colors";
 import { toggleFavoriteSticker } from "@/src/redux/features/stickersSlice";
 import { ISticker, IStickerPack } from "@/src/interfaces/sticker-interface";
+import { hapticSelectionChanged } from "@/src/lib/haptics/haptics";
 
 export const STICKER_PICKER_HEIGHT = 260;
 const NUM_COLUMNS = 4;
@@ -49,7 +50,10 @@ const StickerPicker = ({ onSelectSticker }: { onSelectSticker: (stickerId: strin
 				renderItem={({ item }) => (
 					<TouchableOpacity
 						style={[styles.tab, activeTab === item.id && styles.tabActive]}
-						onPress={() => setActiveTab(item.id)}
+						onPress={() => {
+							hapticSelectionChanged();
+							setActiveTab(item.id);
+						}}
 					>
 						{item.icon ? (
 							<Ionicons name={item.icon} size={16} color={activeTab === item.id ? Colors.focused : "#797C7B"} />

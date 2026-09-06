@@ -97,6 +97,7 @@ const AppGate = () => {
 				<Stack.Screen name="settings-storage" />
 				<Stack.Screen name="settings-display" />
 				<Stack.Screen name="settings-wallpaper" options={{ presentation: "card" }} />
+				<Stack.Screen name="settings-contact-notifications" options={{ presentation: "card" }} />
 			</Stack>
 			<FloatingCallBubble />
 			<InAppMessageBanner />

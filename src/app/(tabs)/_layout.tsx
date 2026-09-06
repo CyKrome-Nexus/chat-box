@@ -21,6 +21,7 @@ import { IUser } from "@/src/interfaces/user-interface";
 import { setShowAddContactModal } from "@/src/redux/features/contactsSlice";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
 import { useAppTheme } from "@/src/lib/theme/ThemeContext";
+import { hapticLightTap } from "@/src/lib/haptics/haptics";
 
 export default function TabLayout() {
 	const user = useSelector((state: { user: IUser | null }) => state.user);
@@ -43,6 +44,9 @@ export default function TabLayout() {
 
 	return (
 		<Tabs
+			screenListeners={{
+				tabPress: hapticLightTap,
+			}}
 			screenOptions={{
 				headerTitleAlign: "center",
 				headerTitleStyle: {

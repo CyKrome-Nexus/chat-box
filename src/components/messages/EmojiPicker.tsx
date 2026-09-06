@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { EMOJI_CATEGORIES, IEmoji } from "@/src/constants/emojis";
 import { useRecentEmojis } from "@/src/hooks/useRecentEmojis";
 import Colors from "@/src/constants/Colors";
+import { hapticSelectionChanged } from "@/src/lib/haptics/haptics";
 
 export const EMOJI_PICKER_HEIGHT = 280;
 const NUM_COLUMNS = 8;
@@ -54,7 +55,10 @@ const EmojiPicker = ({ onSelectEmoji }: { onSelectEmoji: (emoji: string) => void
 				<View style={styles.tabsRow}>
 					<TouchableOpacity
 						style={[styles.tab, activeCategory === "recent" && styles.tabActive]}
-						onPress={() => setActiveCategory("recent")}
+						onPress={() => {
+							hapticSelectionChanged();
+							setActiveCategory("recent");
+						}}
 					>
 						<Ionicons
 							name="time-outline"
@@ -66,7 +70,10 @@ const EmojiPicker = ({ onSelectEmoji }: { onSelectEmoji: (emoji: string) => void
 						<TouchableOpacity
 							key={category.key}
 							style={[styles.tab, activeCategory === category.key && styles.tabActive]}
-							onPress={() => setActiveCategory(category.key)}
+							onPress={() => {
+								hapticSelectionChanged();
+								setActiveCategory(category.key);
+							}}
 						>
 							<Text style={styles.tabIcon}>{category.icon}</Text>
 						</TouchableOpacity>

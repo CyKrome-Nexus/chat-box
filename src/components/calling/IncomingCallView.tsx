@@ -1,13 +1,22 @@
 import { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View, Vibration } from "react-native";
+import { useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
+import { createAudioPlayer } from "expo-audio";
 
 import Avatar from "../images/Avatar";
 import { IActiveCall } from "@/src/redux/features/callSlice";
+import { ICustomNotificationConfig, TVibrationPattern } from "@/src/redux/features/settingsSlice";
+import { CALL_RINGTONES } from "@/src/lib/audio/notificationTones";
 
-// Long buzz, short pause, repeat — no ringtone asset ships in this repo, so
-// vibration stands in for it (see docs/architecture/calling.md).
-const RING_PATTERN = [0, 800, 400];
+// Long buzz, short pause, repeat — the "Default" vibration pattern, and the
+// fallback when no ringtone asset can be resolved.
+const VIBRATION_PATTERNS: Record<TVibrationPattern, number[]> = {
+	default: [0, 800, 400],
+	short: [0, 250, 200],
+	long: [0, 1600, 400],
+	off: [],
+};
 
 const IncomingCallView = ({
 	call,
@@ -18,10 +27,33 @@ const IncomingCallView = ({
 	onAccept: () => void;
 	onDecline: () => void;
 }) => {
+	// Calling's signaling layer keys conversations by contact name (see
+	// callEngineManager.ts), so per-contact overrides are looked up the
+	// same way here.
+	const customConfig: ICustomNotificationConfig | undefined = useSelector(
+		(state: any) => state.settings.customNotifications[call.contactName]
+	);
+	const inAppSoundsEnabled = useSelector((state: any) => state.settings.notifications.inAppSounds as boolean);
+	const vibrationPattern = customConfig?.vibrationPattern || "default";
+
 	useEffect(() => {
-		Vibration.vibrate(RING_PATTERN, true);
+		if (vibrationPattern !== "off") {
+			Vibration.vibrate(VIBRATION_PATTERNS[vibrationPattern], true);
+		}
 		return () => Vibration.cancel();
-	}, []);
+	}, [vibrationPattern]);
+
+	useEffect(() => {
+		if (!inAppSoundsEnabled) return;
+
+		const ringtoneKey = customConfig?.callRingtone || "default";
+		const bundled = CALL_RINGTONES.find((tone) => tone.key === ringtoneKey);
+		const player = createAudioPlayer(bundled ? bundled.source : { uri: ringtoneKey });
+		player.loop = true;
+		player.play();
+		return () => player.pause();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [customConfig?.callRingtone, inAppSoundsEnabled]);
 
 	return (
 		<View style={styles.container}>

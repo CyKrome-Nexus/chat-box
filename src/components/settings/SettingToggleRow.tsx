@@ -1,6 +1,7 @@
 import { StyleSheet, Switch, Text, View } from "react-native";
 
 import Colors from "@/src/constants/Colors";
+import { hapticLightTap } from "@/src/lib/haptics/haptics";
 
 const SettingToggleRow = ({
 	label,
@@ -20,7 +21,10 @@ const SettingToggleRow = ({
 		</View>
 		<Switch
 			value={value}
-			onValueChange={onValueChange}
+			onValueChange={(next) => {
+				hapticLightTap();
+				onValueChange(next);
+			}}
 			trackColor={{ true: Colors.focused }}
 		/>
 	</View>

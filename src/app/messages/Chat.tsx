@@ -38,6 +38,8 @@ import MessageActionsOverlay, { EDIT_WINDOW_MS, IBubbleAnchor } from "@/src/comp
 import MessageInfoModal from "@/src/components/messages/MessageInfoModal";
 import ForwardSheet from "@/src/components/messages/ForwardSheet";
 import ChatWallpaper from "@/src/components/messages/ChatWallpaper";
+import { playSoundEffect } from "@/src/lib/audio/soundEffects";
+import { hapticWarning } from "@/src/lib/haptics/haptics";
 import {
 	composeMessage,
 	deleteForEveryone,
@@ -173,6 +175,7 @@ const Chat = ({ embeddedUser }: { embeddedUser?: IChatRibbon } = {}) => {
 	const [previewRecording, setPreviewRecording] = useState<{ uri: string; durationMillis: number; waveform: number[] } | null>(null);
 	const slideX = useSharedValue(0);
 	const slideY = useSharedValue(0);
+	const hasCrossedCancelThreshold = useRef(false);
 	const sendMorph = useSharedValue(0);
 	const modeFlip = useSharedValue(0);
 	const pressStartRef = useSharedValue(0);
@@ -335,6 +338,7 @@ const Chat = ({ embeddedUser }: { embeddedUser?: IChatRibbon } = {}) => {
 				queued: false,
 			})
 		);
+		playSoundEffect("messageSent");
 		setText("");
 		setInputHeight(MIN_INPUT_HEIGHT);
 	};
@@ -358,7 +362,10 @@ const Chat = ({ embeddedUser }: { embeddedUser?: IChatRibbon } = {}) => {
 			text,
 			replyTo ? { messageId: replyTo.id, text: replyTo.text || "Attachment", isSender: replyTo.type === "sender" } : undefined
 		);
-		if (messageId) simulateDeliveryReceipt(messageId);
+		if (messageId) {
+			simulateDeliveryReceipt(messageId);
+			playSoundEffect("messageSent");
+		}
 		setText("");
 		setInputHeight(MIN_INPUT_HEIGHT);
 		setReplyTo(null);
@@ -413,6 +420,7 @@ const Chat = ({ embeddedUser }: { embeddedUser?: IChatRibbon } = {}) => {
 
 		dispatch(composeMessage({ conversationId, message: { ...message, attachment }, queued: false }));
 		simulateDeliveryReceipt(message.id);
+		playSoundEffect("messageSent");
 
 		requestAnimationFrame(() => {
 			flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -551,6 +559,14 @@ const Chat = ({ embeddedUser }: { embeddedUser?: IChatRibbon } = {}) => {
 		.onUpdate((e) => {
 			slideX.value = Math.min(0, e.translationX);
 			slideY.value = Math.min(0, e.translationY);
+
+			const nowPastThreshold = slideX.value < -SLIDE_TO_CANCEL_THRESHOLD;
+			if (nowPastThreshold && !hasCrossedCancelThreshold.current) {
+				hasCrossedCancelThreshold.current = true;
+				runOnJS(hapticWarning)();
+			} else if (!nowPastThreshold && hasCrossedCancelThreshold.current) {
+				hasCrossedCancelThreshold.current = false;
+			}
 		})
 		.onEnd(() => {
 			const elapsed = Date.now() - pressStartRef.value;
@@ -568,6 +584,7 @@ const Chat = ({ embeddedUser }: { embeddedUser?: IChatRibbon } = {}) => {
 					runOnJS(handleFinishRecording)(cancelled);
 				}
 			}
+			hasCrossedCancelThreshold.current = false;
 			slideX.value = withSpring(0);
 			slideY.value = withSpring(0);
 		});
@@ -660,6 +677,7 @@ const Chat = ({ embeddedUser }: { embeddedUser?: IChatRibbon } = {}) => {
 		const canDeleteForEveryone =
 			message.type === "sender" && Date.now() - message.timestamp < EDIT_WINDOW_MS;
 
+		hapticWarning();
 		Alert.alert("Delete message?", undefined, [
 			{ text: "Cancel", style: "cancel" },
 			...(canDeleteForEveryone

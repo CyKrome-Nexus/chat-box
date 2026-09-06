@@ -4,6 +4,7 @@ import Animated, { FadeIn, FadeOut, ZoomIn } from "react-native-reanimated";
 
 import { IMessage } from "@/src/interfaces/message-interface";
 import Colors from "@/src/constants/Colors";
+import { hapticLightTap } from "@/src/lib/haptics/haptics";
 
 export const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 export const EDIT_WINDOW_MS = 15 * 60 * 1000;
@@ -148,7 +149,14 @@ const MessageActionsOverlay = ({
 					style={[styles.pill, { top: pillTop, left: Math.max(12, Math.min(SCREEN.width - 260, anchor.x)) }]}
 				>
 					{QUICK_REACTIONS.map((emoji) => (
-						<TouchableOpacity key={emoji} onPress={() => onReact(emoji)} style={styles.pillEmojiButton}>
+						<TouchableOpacity
+						key={emoji}
+						onPress={() => {
+							hapticLightTap();
+							onReact(emoji);
+						}}
+						style={styles.pillEmojiButton}
+					>
 							<Text style={styles.pillEmoji}>{emoji}</Text>
 						</TouchableOpacity>
 					))}

@@ -21,6 +21,8 @@ import { unarchiveChat } from "@/src/redux/features/chatsSlice";
 import { computeExpiresAt } from "@/src/lib/security/disappearingMessages";
 import { showMessageNotification } from "@/src/lib/notifications/messageNotifications";
 import { decryptFromConversation, isEncryptedEnvelope } from "@/src/lib/crypto/sessionManager";
+import { playSoundEffect } from "@/src/lib/audio/soundEffects";
+import { MESSAGE_TONES, previewTone } from "@/src/lib/audio/notificationTones";
 
 /**
  * The realtime server URL. Configure via an EXPO_PUBLIC_ env var so it can
@@ -118,6 +120,15 @@ export const useRealtimeConnection = (currentUserId?: string) => {
 
             if (chat?.archived && state.settings.chat.unarchiveOnNewMessage) {
                 dispatch(unarchiveChat(payload.conversationId));
+            }
+
+            if (!chat?.muted && state.settings.notifications.inAppSounds) {
+                const customTone = state.settings.customNotifications[payload.conversationId]?.messageTone;
+                if (customTone && customTone !== "default") {
+                    previewTone(customTone, MESSAGE_TONES);
+                } else {
+                    playSoundEffect("messageReceived");
+                }
             }
 
             // Do Not Disturb: muted chats never produce a sound/alert/banner,

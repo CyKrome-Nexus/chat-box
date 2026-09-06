@@ -1,12 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import Avatar from "../images/Avatar";
 import CallControlButton from "./CallControlButton";
 import { IActiveCall } from "@/src/redux/features/callSlice";
+import { startCallRingingLoop, stopCallRingingLoop } from "@/src/lib/audio/soundEffects";
 
 const OutgoingCallView = ({ call, onHangUp }: { call: IActiveCall; onHangUp: () => void }) => {
 	const [speakerOn, setSpeakerOn] = useState(false);
+
+	// This view is only ever mounted while the call is actually ringing
+	// (call.tsx swaps to ActiveCallView the moment status becomes "active"),
+	// so mount/unmount is exactly the "start ringing" / "stop ringing"
+	// lifecycle — no separate status check needed.
+	useEffect(() => {
+		startCallRingingLoop();
+		return () => stopCallRingingLoop();
+	}, []);
 
 	return (
 		<View style={styles.container}>
