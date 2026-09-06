@@ -12,14 +12,17 @@ import { buildProfileLink } from "@/src/lib/profile/profileLink";
 
 const QrCodeScreen = () => {
 	const user = useSelector((state: { user: IUser | null }) => state.user);
-	const profileLink = buildProfileLink(user?.username || "unknown");
+	const hasHandle = !!user?.handle;
+	const profileLink = hasHandle ? buildProfileLink(user!.handle!) : null;
 
 	const handleCopyLink = async () => {
+		if (!profileLink) return;
 		await Clipboard.setStringAsync(profileLink);
 		Alert.alert("Copied", "Profile link copied to clipboard.");
 	};
 
 	const handleShare = async () => {
+		if (!profileLink) return;
 		try {
 			await Share.share({ message: `Chat with me on Chatbox: ${profileLink}` });
 		} catch {
@@ -35,22 +38,33 @@ const QrCodeScreen = () => {
 
 			<Avatar data={user?.avatar} isWhite size={80} />
 			<Text style={styles.name}>{user?.name}</Text>
-			<Text style={styles.link}>{profileLink}</Text>
 
-			<View style={styles.qrCard}>
-				<QRCode value={profileLink} size={220} backgroundColor="#fff" color="#000" />
-			</View>
-
-			<View style={styles.actionsRow}>
-				<TouchableOpacity style={styles.actionButton} onPress={handleCopyLink}>
-					<Ionicons name="link" size={18} color="#fff" />
-					<Text style={styles.actionText}>Copy Link</Text>
+			{hasHandle ? (
+				<>
+					<Text style={styles.link}>{profileLink}</Text>
+					<View style={styles.qrCard}>
+						<QRCode value={profileLink!} size={220} backgroundColor="#fff" color="#000" />
+					</View>
+					<View style={styles.actionsRow}>
+						<TouchableOpacity style={styles.actionButton} onPress={handleCopyLink}>
+							<Ionicons name="link" size={18} color="#fff" />
+							<Text style={styles.actionText}>Copy Link</Text>
+						</TouchableOpacity>
+						<TouchableOpacity style={styles.actionButton} onPress={handleShare}>
+							<Ionicons name="share-social" size={18} color="#fff" />
+							<Text style={styles.actionText}>Share</Text>
+						</TouchableOpacity>
+					</View>
+				</>
+			) : (
+				<TouchableOpacity style={styles.claimPrompt} onPress={() => router.push("/profile")}>
+					<Ionicons name="at-circle-outline" size={40} color="#fff" />
+					<Text style={styles.claimPromptText}>
+						Claim a @username in your profile to get a shareable QR code and link — your phone number is
+						never included.
+					</Text>
 				</TouchableOpacity>
-				<TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-					<Ionicons name="share-social" size={18} color="#fff" />
-					<Text style={styles.actionText}>Share</Text>
-				</TouchableOpacity>
-			</View>
+			)}
 
 			<TouchableOpacity style={styles.scanButton} onPress={() => router.push("/qr-scanner")}>
 				<Ionicons name="scan" size={18} color={Colors.focused} />
@@ -91,6 +105,20 @@ const styles = StyleSheet.create({
 		backgroundColor: "#fff",
 		borderRadius: 20,
 		padding: 20,
+	},
+	claimPrompt: {
+		alignItems: "center",
+		gap: 14,
+		backgroundColor: "rgba(255,255,255,0.08)",
+		borderRadius: 20,
+		padding: 28,
+		marginTop: 20,
+	},
+	claimPromptText: {
+		color: "rgba(255,255,255,0.85)",
+		fontSize: 14,
+		textAlign: "center",
+		lineHeight: 20,
 	},
 	actionsRow: {
 		flexDirection: "row",

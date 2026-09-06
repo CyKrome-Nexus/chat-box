@@ -11,10 +11,19 @@ import { IUser } from "@/src/interfaces/user-interface";
 import { updateUser } from "@/src/redux/features/userSlice";
 import { useAvatarPicker } from "@/src/hooks/useAvatarPicker";
 import { isEmail } from "@/src/lib/auth/validators";
+import UsernameEditor from "@/src/components/settings/UsernameEditor";
+import { TVisibility } from "@/src/redux/features/settingsSlice";
+
+const PHONE_VISIBILITY_COPY: Record<TVisibility, string> = {
+	everyone: "Your phone number is visible to everyone who views your profile.",
+	contacts: "Your phone number is visible only to people who have you saved as a contact.",
+	nobody: "Your phone number is hidden from everyone. People can only find and message you via your @username.",
+};
 
 const Profile = () => {
 	const dispatch = useDispatch();
 	const user = useSelector((state: { user: IUser | null }) => state.user);
+	const phoneNumberVisibility = useSelector((state: any) => state.settings.privacy.phoneNumberVisibility as TVisibility);
 	const { pickAvatar } = useAvatarPicker();
 
 	const [name, setName] = useState(user?.name || "");
@@ -81,6 +90,29 @@ const Profile = () => {
 					<Text style={styles.saveButtonText}>Save</Text>
 				</TouchableOpacity>
 			)}
+
+			<View style={styles.usernameSection}>
+				<Text style={styles.sectionLabel}>Username</Text>
+				<Text style={styles.sectionHint}>
+					Let people start a chat with you without knowing your phone number.
+				</Text>
+				<UsernameEditor
+					currentHandle={user?.handle}
+					userId={user?.id || user?.username || "me"}
+					name={user?.name || "Me"}
+					avatarUrl={user?.avatar?.url}
+					onClaimed={(handle) => dispatch(updateUser({ ...user, handle: handle || undefined }))}
+				/>
+			</View>
+
+			<View style={styles.usernameSection}>
+				<Text style={styles.sectionLabel}>Phone Number Privacy</Text>
+				<Text style={styles.sectionHint}>{PHONE_VISIBILITY_COPY[phoneNumberVisibility]}</Text>
+				<TouchableOpacity style={styles.privacyLink} onPress={() => router.push("/settings-account")}>
+					<Text style={styles.privacyLinkText}>Change in Settings → Account → Privacy</Text>
+					<Ionicons name="chevron-forward" size={16} color={Colors.focused} />
+				</TouchableOpacity>
+			</View>
 		</ScrollView>
 	);
 };
@@ -155,5 +187,32 @@ const styles = StyleSheet.create({
 		color: "#fff",
 		fontWeight: "bold",
 		fontSize: 16,
+	},
+	usernameSection: {
+		width: "100%",
+		marginTop: 28,
+	},
+	sectionLabel: {
+		fontSize: 13,
+		fontWeight: "700",
+		color: "#797C7B",
+		textTransform: "uppercase",
+		marginBottom: 6,
+	},
+	sectionHint: {
+		fontSize: 13,
+		color: "#797C7B",
+		marginBottom: 12,
+		lineHeight: 18,
+	},
+	privacyLink: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+	},
+	privacyLinkText: {
+		fontSize: 13,
+		fontWeight: "600",
+		color: Colors.focused,
 	},
 });

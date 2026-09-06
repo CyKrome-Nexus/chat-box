@@ -7,10 +7,12 @@ import VisibilityPickerRow from "@/src/components/settings/VisibilityPickerRow";
 import {
 	setAutoLockTimeout,
 	setBiometricLockEnabled,
+	setDiscoverableByPhoneNumber,
 	setPrivacyPref,
 	setPrivacyVisibility,
 	setStatusPrivacy,
 	TAutoLockTimeout,
+	TPhoneDiscoverability,
 } from "@/src/redux/features/settingsSlice";
 import { deleteAccount } from "@/src/lib/auth/authService";
 import { logoutUser } from "@/src/lib/features";
@@ -27,6 +29,11 @@ const STATUS_PRIVACY_OPTIONS: { key: "contacts" | "contactsExcept" | "onlyShareW
 	{ key: "contacts", label: "My Contacts" },
 	{ key: "contactsExcept", label: "Contacts Except…" },
 	{ key: "onlyShareWith", label: "Only Share With…" },
+];
+
+const DISCOVERABILITY_OPTIONS: { key: TPhoneDiscoverability; label: string }[] = [
+	{ key: "everyone", label: "Everyone" },
+	{ key: "contacts", label: "My Contacts" },
 ];
 
 const SettingsAccount = () => {
@@ -80,6 +87,37 @@ const SettingsAccount = () => {
 				value={privacy.readReceipts}
 				onValueChange={(value) => dispatch(setPrivacyPref({ key: "readReceipts", value }))}
 			/>
+
+			<Text style={styles.sectionTitle}>Phone Number</Text>
+			<VisibilityPickerRow
+				label="Who can see my phone number"
+				description={
+					privacy.phoneNumberVisibility === "nobody"
+						? "Nobody — people can only find and message you via your @username"
+						: undefined
+				}
+				value={privacy.phoneNumberVisibility}
+				onValueChange={(value) => dispatch(setPrivacyVisibility({ key: "phoneNumberVisibility", value }))}
+			/>
+			<Text style={styles.subLabel}>Who can find me by my phone number</Text>
+			<View style={styles.autoLockOptions}>
+				{DISCOVERABILITY_OPTIONS.map((option) => (
+					<TouchableOpacity
+						key={option.key}
+						style={[styles.autoLockChip, privacy.discoverableByPhoneNumber === option.key && styles.autoLockChipActive]}
+						onPress={() => dispatch(setDiscoverableByPhoneNumber(option.key))}
+					>
+						<Text
+							style={[
+								styles.autoLockChipText,
+								privacy.discoverableByPhoneNumber === option.key && styles.autoLockChipTextActive,
+							]}
+						>
+							{option.label}
+						</Text>
+					</TouchableOpacity>
+				))}
+			</View>
 
 			<Text style={styles.sectionTitle}>Status Privacy</Text>
 			<Text style={styles.note}>Who can see new status updates you post, by default.</Text>
@@ -171,6 +209,13 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		color: "#797C7B",
 		marginBottom: 10,
+	},
+	subLabel: {
+		fontSize: 13,
+		fontWeight: "600",
+		color: "#000E08",
+		marginTop: 12,
+		marginBottom: 8,
 	},
 	sectionTitle: {
 		fontSize: 13,

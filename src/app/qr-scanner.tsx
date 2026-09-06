@@ -5,18 +5,29 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { parseProfileLink } from "@/src/lib/profile/profileLink";
+import { lookupByHandle } from "@/src/lib/username/usernameRegistry";
 
 const QrScannerScreen = () => {
 	const [permission, requestPermission] = useCameraPermissions();
 	const [scanned, setScanned] = useState(false);
 
-	const handleScanned = ({ data }: { data: string }) => {
+	const handleScanned = async ({ data }: { data: string }) => {
 		if (scanned) return;
 		setScanned(true);
 
-		const username = parseProfileLink(data);
-		if (!username) {
+		const handle = parseProfileLink(data);
+		if (!handle) {
 			Alert.alert("Not a Chatbox QR code", "This QR code isn't a Chatbox profile link.", [
+				{ text: "OK", onPress: () => setScanned(false) },
+			]);
+			return;
+		}
+
+		// A real lookup against the (simulated, see usernameRegistry.ts)
+		// global username directory — not a blind trust of the scanned text.
+		const record = await lookupByHandle(handle);
+		if (!record) {
+			Alert.alert("Username not found", `@${handle} isn't a registered Chatbox username.`, [
 				{ text: "OK", onPress: () => setScanned(false) },
 			]);
 			return;
@@ -24,10 +35,14 @@ const QrScannerScreen = () => {
 
 		router.replace({
 			pathname: "/messages/Chat",
-			// There's no backend to look up a real profile by username yet,
-			// so the scanned username becomes both the chat's id and display
-			// name — see docs/architecture/profile-qr.md.
-			params: { user: JSON.stringify({ id: username, name: username, avatar: { url: "" } }) },
+			params: {
+				user: JSON.stringify({
+					id: record.userId,
+					name: record.name,
+					handle: record.handle,
+					avatar: { url: record.avatarUrl || "" },
+				}),
+			},
 		});
 	};
 
