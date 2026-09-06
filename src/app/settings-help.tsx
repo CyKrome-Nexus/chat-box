@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import SettingsScreenHeader from "@/src/components/settings/SettingsScreenHeader";
 import Colors from "@/src/constants/Colors";
+import { useAppVersionInfo } from "@/src/hooks/useAppVersionInfo";
 
 const FAQS = [
 	{
@@ -26,6 +27,7 @@ const FAQS = [
 
 const SettingsHelp = () => {
 	const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+	const { version, buildNumber } = useAppVersionInfo();
 
 	return (
 		<ScrollView contentContainerStyle={styles.container}>
@@ -75,6 +77,16 @@ const SettingsHelp = () => {
 			>
 				<Text style={styles.linkText}>Privacy Policy</Text>
 			</TouchableOpacity>
+
+			<Text style={styles.sectionTitle}>About</Text>
+			<View style={styles.aboutRow}>
+				<Text style={styles.aboutLabel}>Version</Text>
+				<Text style={styles.aboutValue}>{version}</Text>
+			</View>
+			<View style={styles.aboutRow}>
+				<Text style={styles.aboutLabel}>Build</Text>
+				<Text style={styles.aboutValue}>{buildNumber}</Text>
+			</View>
 		</ScrollView>
 	);
 };
@@ -127,5 +139,20 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		fontWeight: "600",
 		color: Colors.focused,
+	},
+	aboutRow: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		paddingVertical: 10,
+		borderBottomWidth: 1,
+		borderBottomColor: "#F0F0F0",
+	},
+	aboutLabel: {
+		fontSize: 14,
+		color: "#000E08",
+	},
+	aboutValue: {
+		fontSize: 14,
+		color: "#797C7B",
 	},
 });

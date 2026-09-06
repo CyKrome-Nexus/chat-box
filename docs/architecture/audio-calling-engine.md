@@ -19,7 +19,7 @@ don't exist in this repository or environment:
 
 All of the native modules here (`react-native-webrtc`, `react-native-callkeep`,
 `react-native-incall-manager`, `@notifee/react-native`) require a custom dev client / EAS build —
-none work in Expo Go. Config plugins are registered in `app.json`
+none work in Expo Go. Config plugins are registered in `app.config.ts`
 (`@config-plugins/react-native-webrtc`, `@config-plugins/react-native-callkeep`), pinned to the
 versions documented as compatible with this project's Expo SDK 54
 (`react-native-webrtc@124.0.6`-class / plugin `13.0.0`, `react-native-callkeep@4.3.16` / plugin
@@ -70,7 +70,7 @@ set:
 - **`useIncomingCallNotification`** (Android only): shows a full-screen-intent Notifee
   notification (`AndroidCategory.CALL`, `fullScreenAction`) with Accept/Decline actions whenever
   `activeCall` is a ringing incoming call, wired back into `callSlice` the same way. This is the
-  Android equivalent of CallKit's lock-screen UI. `app.json` declares
+  Android equivalent of CallKit's lock-screen UI. `app.config.ts` declares
   `android.permission.USE_FULL_SCREEN_INTENT` and `POST_NOTIFICATIONS`.
 
 ## Audio Routing

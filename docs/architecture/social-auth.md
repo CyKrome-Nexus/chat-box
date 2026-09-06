@@ -28,7 +28,7 @@ pass `handleSocialPress`, which maps `[facebook, google, apple]` indices to the 
   via a `fetch` to the Graph API (`fetchFacebookProfile`).
 - **Apple**: `expo-apple-authentication`'s `signInAsync` — no client ID needed; it uses the app's
   bundle identifier and the `usesAppleSignIn: true` / `expo-apple-authentication` plugin entries in
-  `app.json`. iOS-only; `useSocialAuth` shows an explanatory alert on other platforms or when the
+  `app.config.ts`. iOS-only; `useSocialAuth` shows an explanatory alert on other platforms or when the
   device doesn't support it (e.g. simulator without Apple ID configured).
 
 If a provider's client ID env var isn't set, pressing its button shows a "not configured" alert
