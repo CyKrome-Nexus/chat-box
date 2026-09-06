@@ -9,6 +9,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { store } from "../redux/store/store";
 import { useRealtimeConnection } from "../hooks/useRealtimeConnection";
 import { useSessionPersistence } from "../hooks/useSessionPersistence";
+import { useAccountRegistrySync } from "../hooks/useAccountRegistrySync";
 import { useSettingsPersistence } from "../hooks/useSettingsPersistence";
 import { useOfflineDbSync } from "../hooks/useOfflineDbSync";
 import { useNetworkSync } from "../hooks/useNetworkSync";
@@ -38,6 +39,7 @@ const AppGate = () => {
 	const userId = useSelector((state: any) => state.user?._id || state.user?.username);
 
 	useSessionPersistence();
+	useAccountRegistrySync();
 	useSettingsPersistence();
 	useOfflineDbSync();
 	useNetworkSync();
@@ -88,6 +90,8 @@ const AppGate = () => {
 				<Stack.Screen name="shared-media" options={{ presentation: "card" }} />
 				<Stack.Screen name="starred-messages" options={{ presentation: "card" }} />
 				<Stack.Screen name="profile" options={{ presentation: "modal" }} />
+				<Stack.Screen name="accounts" options={{ presentation: "modal" }} />
+				<Stack.Screen name="add-account" options={{ presentation: "modal" }} />
 				<Stack.Screen name="qr-code" options={{ presentation: "modal" }} />
 				<Stack.Screen name="qr-scanner" options={{ presentation: "fullScreenModal" }} />
 				<Stack.Screen name="settings-account" />

@@ -1,27 +1,36 @@
 import { openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
 
-const DATABASE_NAME = "chatbox.db";
-
-let dbPromise: Promise<SQLiteDatabase> | null = null;
-
 /**
- * The local embedded database backing offline-first storage: conversations,
- * messages, contacts, call logs, and the outbound sync queue all live here
- * so the app can render instantly from disk before any network round trip.
- * `expo-sqlite` was chosen over WatermelonDB because it works in the
- * existing Expo managed workflow without a custom dev client/native config
- * — the ticket explicitly allows "op-sqlite... or similar" as an
- * alternative, and this repo has no custom native build set up.
+ * Multi-Account (see docs/architecture/multi-account.md): each linked
+ * account gets its own SQLite file — `chatbox.db` for "default" (the
+ * pre-multi-account single-user case, kept unsuffixed so existing installs
+ * don't lose their data on upgrade) and `chatbox_<accountId>.db` for every
+ * account added after. `setActiveDatabaseAccount` is called on account
+ * switch; every repo in this directory calls the plain `getDatabase()`
+ * below with no changes needed at any of their call sites — the account
+ * scoping is entirely internal to this module.
  */
+let activeAccountId = "default";
+export const setActiveDatabaseAccount = (accountId: string) => {
+    activeAccountId = accountId;
+};
+
+const databaseFileName = (accountId: string) => (accountId === "default" ? "chatbox.db" : `chatbox_${accountId}.db`);
+
+const dbPromises = new Map<string, Promise<SQLiteDatabase>>();
+
 export const getDatabase = (): Promise<SQLiteDatabase> => {
-    if (!dbPromise) {
-        dbPromise = openDatabaseAsync(DATABASE_NAME).then(async (db) => {
-            await db.execAsync("PRAGMA journal_mode = WAL;");
-            await runMigrations(db);
-            return db;
-        });
-    }
-    return dbPromise;
+    const accountId = activeAccountId;
+    const existing = dbPromises.get(accountId);
+    if (existing) return existing;
+
+    const promise = openDatabaseAsync(databaseFileName(accountId)).then(async (db) => {
+        await db.execAsync("PRAGMA journal_mode = WAL;");
+        await runMigrations(db);
+        return db;
+    });
+    dbPromises.set(accountId, promise);
+    return promise;
 };
 
 const runMigrations = async (db: SQLiteDatabase) => {
@@ -135,5 +144,5 @@ const runMigrations = async (db: SQLiteDatabase) => {
 
 /** Test-only escape hatch: forces the next getDatabase() call to reopen. */
 export const _resetDatabaseForTests = () => {
-    dbPromise = null;
+    dbPromises.clear();
 };

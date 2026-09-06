@@ -6,6 +6,7 @@ import { IUser } from "@/src/interfaces/user-interface";
 import Avatar from "@/src/components/images/Avatar";
 import BIcon from "@/src/components/buttons/BIcon";
 import {
+	contact,
 	data,
 	inviteFriends,
 	key,
@@ -31,6 +32,12 @@ const Settings = () => {
 	const user = useSelector((state: { user: IUser }) => state.user);
 
 	const settingsList: ISettingsRibbon[] = [
+		{
+			title: "Accounts",
+			description: "Switch between linked accounts, or add another",
+			svg: contact,
+			onPress: () => router.push("/accounts"),
+		},
 		{
 			title: "Account",
 			description: "Privacy, Security, Change Number etc",
@@ -80,7 +87,11 @@ const Settings = () => {
 		<>
 			<View style={styles.container}>
 				<ListDrawer>
-					<TouchableOpacity style={styles.userRibbon} onPress={() => router.push("/profile")}>
+					<TouchableOpacity
+						style={styles.userRibbon}
+						onPress={() => router.push("/profile")}
+						onLongPress={() => router.push("/accounts")}
+					>
 						<Avatar data={user?.avatar} size={70} />
 						<View style={styles.userAbout}>
 							<Text style={{ fontSize: 22, fontWeight: "bold" }}>
