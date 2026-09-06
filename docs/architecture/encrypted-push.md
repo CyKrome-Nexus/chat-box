@@ -39,7 +39,7 @@ it.
 - **`plugins/withEncryptedPush.js`**: a real Expo config plugin (using the documented
   `withEntitlementsPlist` mod from `expo/config-plugins`) that adds the
   `group.com.cykrome.chatbox` App Group entitlement the NSE needs to share Keychain-backed ratchet
-  state with the main app. Registered in `app.json`. This is genuine, valid config-plugin code — the
+  state with the main app. Registered in `app.config.ts`. This is genuine, valid config-plugin code — the
   one piece of the native setup that's safely automatable without hand-editing a `.pbxproj`, and it
   runs correctly the next time `expo prebuild` executes on a machine that has Xcode. It does **not**
   (and safely cannot) create the NSE *target itself* — see the plugin's own doc comment for exactly

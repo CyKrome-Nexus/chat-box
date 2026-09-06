@@ -73,7 +73,7 @@ regenerable by an admin (`regenerateInviteCode`, shown as "Reset" in `/group-inf
   format, used for the copyable/shareable text. This domain isn't real; there's no web server or
   App/Universal Links config in this repo to make tapping this URL from outside the app open it.
 - `buildGroupInviteDeepLink()` → `chat-box://join/[code]` — the app's own registered `scheme`
-  (`app.json`), which **does** work: it resolves to `src/app/join/[code].tsx` via Expo Router's
+  (`app.config.ts`), which **does** work: it resolves to `src/app/join/[code].tsx` via Expo Router's
   automatic deep-link-to-route mapping. The QR code in `/group-info` encodes this deep link (not the
   display URL) so scanning it with this device's own camera app genuinely opens Chatbox to the join
   screen — the acceptance criterion "invite links correctly open the app and join the user to the

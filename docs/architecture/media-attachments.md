@@ -35,7 +35,7 @@ as "sent" (`message.status` is set to `"sent"` at that point).
 
 ## Permissions
 
-`app.json` registers `expo-image-picker` (`photosPermission`, `cameraPermission`) and
+`app.config.ts` registers `expo-image-picker` (`photosPermission`, `cameraPermission`) and
 `expo-location` (`locationWhenInUsePermission`) config plugins with the permission rationale
 strings shown on iOS. `expo-document-picker` uses the system file picker and needs no extra
 native permission config.
