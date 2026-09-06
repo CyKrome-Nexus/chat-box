@@ -9,23 +9,29 @@ import * as DocumentPicker from "expo-document-picker";
 import SettingsScreenHeader from "@/src/components/settings/SettingsScreenHeader";
 import SettingToggleRow from "@/src/components/settings/SettingToggleRow";
 import PassphraseModal from "@/src/components/settings/PassphraseModal";
+import AccentColorPicker from "@/src/components/settings/AccentColorPicker";
 import Colors from "@/src/constants/Colors";
-import { setLastBackupAt, setTheme, setUnarchiveOnNewMessage, TTheme } from "@/src/redux/features/settingsSlice";
+import { setAccentColor, setLastBackupAt, setTheme, setUnarchiveOnNewMessage, TTheme } from "@/src/redux/features/settingsSlice";
 import { clearAllMessages, hydrateMessages } from "@/src/redux/features/messagesSlice";
 import { hydrateChats } from "@/src/redux/features/chatsSlice";
 import { hydrateManualContacts } from "@/src/redux/features/contactsSlice";
 import { hydrateCallHistory } from "@/src/redux/features/callSlice";
 import { createEncryptedBackup, persistRestoredBackup, restoreEncryptedBackup } from "@/src/lib/backup/encryptedBackup";
+import { useAppTheme } from "@/src/lib/theme/ThemeContext";
 
 const THEME_OPTIONS: { key: TTheme; label: string }[] = [
 	{ key: "system", label: "System" },
 	{ key: "light", label: "Light" },
 	{ key: "dark", label: "Dark" },
+	{ key: "oledBlack", label: "OLED Black" },
+	{ key: "sepia", label: "Sepia" },
 ];
 
 const SettingsChat = () => {
 	const dispatch = useDispatch();
+	const appTheme = useAppTheme();
 	const theme = useSelector((state: any) => state.settings.theme as TTheme);
+	const accentColor = useSelector((state: any) => state.settings.appearance.accentColor as string);
 	const lastBackupAt = useSelector((state: any) => state.settings.lastBackupAt as number | null);
 	const unarchiveOnNewMessage = useSelector((state: any) => state.settings.chat.unarchiveOnNewMessage as boolean);
 	const [backupModal, setBackupModal] = useState(false);
@@ -95,12 +101,15 @@ const SettingsChat = () => {
 				<Ionicons name="chevron-forward" size={18} color="#797C7B" />
 			</TouchableOpacity>
 
-			<Text style={styles.sectionTitle}>Appearance</Text>
+			<Text style={styles.sectionTitle}>Theme</Text>
 			<View style={styles.themeRow}>
 				{THEME_OPTIONS.map((option) => (
 					<TouchableOpacity
 						key={option.key}
-						style={[styles.themeOption, theme === option.key && styles.themeOptionActive]}
+						style={[
+							styles.themeOption,
+							theme === option.key && { backgroundColor: appTheme.accent, borderColor: appTheme.accent },
+						]}
 						onPress={() => dispatch(setTheme(option.key))}
 					>
 						<Text style={[styles.themeOptionText, theme === option.key && styles.themeOptionTextActive]}>
@@ -109,9 +118,19 @@ const SettingsChat = () => {
 					</TouchableOpacity>
 				))}
 			</View>
+
+			<Text style={styles.sectionTitle}>Accent Color</Text>
+			<AccentColorPicker value={accentColor} onChange={(hex) => dispatch(setAccentColor(hex))} />
+
+			<Text style={styles.sectionTitle}>Appearance</Text>
 			<TouchableOpacity style={styles.starredRow} onPress={() => router.push("/settings-display")}>
-				<Ionicons name="text" size={20} color={Colors.focused} />
+				<Ionicons name="text" size={20} color={appTheme.accent} />
 				<Text style={styles.starredRowLabel}>Text & Display Size</Text>
+				<Ionicons name="chevron-forward" size={18} color="#797C7B" />
+			</TouchableOpacity>
+			<TouchableOpacity style={styles.starredRow} onPress={() => router.push("/settings-wallpaper")}>
+				<Ionicons name="image" size={20} color={appTheme.accent} />
+				<Text style={styles.starredRowLabel}>Chat Wallpaper</Text>
 				<Ionicons name="chevron-forward" size={18} color="#797C7B" />
 			</TouchableOpacity>
 
@@ -123,11 +142,6 @@ const SettingsChat = () => {
 				onValueChange={(value) => dispatch(setUnarchiveOnNewMessage(value))}
 			/>
 
-			<Text style={styles.sectionTitle}>Wallpaper</Text>
-			<Text style={styles.note}>
-				Chat wallpaper customization is coming soon — the default theme background is used everywhere for now.
-			</Text>
-
 			<Text style={styles.sectionTitle}>Backup</Text>
 			<Text style={styles.note}>
 				{lastBackupAt
@@ -135,11 +149,19 @@ const SettingsChat = () => {
 					: "You haven't backed up your chats yet."}{" "}
 				Backups are encrypted end-to-end with a passphrase only you know — see Encryption docs.
 			</Text>
-			<TouchableOpacity style={styles.primaryButton} onPress={() => setBackupModal(true)} disabled={isWorking}>
+			<TouchableOpacity
+				style={[styles.primaryButton, { backgroundColor: appTheme.accent }]}
+				onPress={() => setBackupModal(true)}
+				disabled={isWorking}
+			>
 				<Text style={styles.primaryButtonText}>Create Encrypted Backup</Text>
 			</TouchableOpacity>
-			<TouchableOpacity style={styles.secondaryButton} onPress={handlePickRestoreFile} disabled={isWorking}>
-				<Text style={styles.secondaryButtonText}>Restore from Backup</Text>
+			<TouchableOpacity
+				style={[styles.secondaryButton, { borderColor: appTheme.accent }]}
+				onPress={handlePickRestoreFile}
+				disabled={isWorking}
+			>
+				<Text style={[styles.secondaryButtonText, { color: appTheme.accent }]}>Restore from Backup</Text>
 			</TouchableOpacity>
 
 			<Text style={styles.sectionTitle}>Danger Zone</Text>
@@ -201,19 +223,16 @@ const styles = StyleSheet.create({
 	},
 	themeRow: {
 		flexDirection: "row",
+		flexWrap: "wrap",
 		gap: 10,
 	},
 	themeOption: {
-		flex: 1,
 		paddingVertical: 12,
+		paddingHorizontal: 16,
 		borderRadius: 14,
 		borderWidth: 1,
 		borderColor: "#CDD1D0",
 		alignItems: "center",
-	},
-	themeOptionActive: {
-		backgroundColor: Colors.focused,
-		borderColor: Colors.focused,
 	},
 	themeOptionText: {
 		fontWeight: "600",

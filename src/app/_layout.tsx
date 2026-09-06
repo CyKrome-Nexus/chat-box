@@ -22,6 +22,7 @@ import { useBadgeCountSync } from "../hooks/useBadgeCountSync";
 import FloatingCallBubble from "../components/calling/FloatingCallBubble";
 import AppLockScreen from "../components/security/AppLockScreen";
 import InAppMessageBanner from "../components/notifications/InAppMessageBanner";
+import { AppThemeProvider } from "../lib/theme/ThemeContext";
 import { Stack } from "expo-router";
 
 SplashScreen.preventAutoHideAsync();
@@ -61,6 +62,7 @@ const AppGate = () => {
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
+			<AppThemeProvider>
 			<KeyboardProvider>
 			<Stack screenOptions={{ headerShown: false }}>
 				<Stack.Screen name="(root)" />
@@ -92,11 +94,14 @@ const AppGate = () => {
 				<Stack.Screen name="settings-notifications" />
 				<Stack.Screen name="settings-help" />
 				<Stack.Screen name="settings-storage" />
+				<Stack.Screen name="settings-display" />
+				<Stack.Screen name="settings-wallpaper" options={{ presentation: "card" }} />
 			</Stack>
 			<FloatingCallBubble />
 			<InAppMessageBanner />
 			<AppLockScreen visible={isLocked} onUnlock={unlock} />
 			</KeyboardProvider>
+			</AppThemeProvider>
 		</GestureHandlerRootView>
 	);
 };

@@ -9,8 +9,8 @@ import ChatRibbon from "@/src/components/riboons/ChatRibbon";
 import StoriesCarousel from "@/src/components/stories/StoriesCarousel";
 import MasterDetailLayout from "@/src/components/layout/MasterDetailLayout";
 import { IChatRibbon } from "@/src/interfaces/list-interface";
-import Colors from "@/src/constants/Colors";
 import { useResponsiveLayout } from "@/src/lib/display/useResponsiveLayout";
+import { useAppTheme } from "@/src/lib/theme/ThemeContext";
 
 type TFilter = "all" | "unread" | "groups";
 const FILTERS: { key: TFilter; label: string }[] = [
@@ -32,6 +32,7 @@ const Messages = () => {
 	const [filter, setFilter] = useState<TFilter>("all");
 	const [showArchived, setShowArchived] = useState(false);
 	const { isTablet } = useResponsiveLayout();
+	const theme = useAppTheme();
 	const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
 	const selectedChat = useMemo(() => chats.find((c) => c.id === selectedChatId) || null, [chats, selectedChatId]);
 
@@ -70,7 +71,7 @@ const Messages = () => {
 								{FILTERS.map((f) => (
 									<TouchableOpacity
 										key={f.key}
-										style={[styles.filterPill, filter === f.key && styles.filterPillActive]}
+										style={[styles.filterPill, filter === f.key && { backgroundColor: theme.accent }]}
 										onPress={() => setFilter(f.key)}
 									>
 										<Text style={[styles.filterPillText, filter === f.key && styles.filterPillTextActive]}>
@@ -141,9 +142,6 @@ const styles = StyleSheet.create({
 		paddingVertical: 6,
 		borderRadius: 16,
 		backgroundColor: "#F2F8F7",
-	},
-	filterPillActive: {
-		backgroundColor: Colors.focused,
 	},
 	filterPillText: {
 		fontSize: 13,

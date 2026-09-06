@@ -37,6 +37,7 @@ import FullscreenVideoModal from "@/src/components/messages/FullscreenVideoModal
 import MessageActionsOverlay, { EDIT_WINDOW_MS, IBubbleAnchor } from "@/src/components/messages/MessageActionsOverlay";
 import MessageInfoModal from "@/src/components/messages/MessageInfoModal";
 import ForwardSheet from "@/src/components/messages/ForwardSheet";
+import ChatWallpaper from "@/src/components/messages/ChatWallpaper";
 import {
 	composeMessage,
 	deleteForEveryone,
@@ -820,6 +821,7 @@ const Chat = ({ embeddedUser }: { embeddedUser?: IChatRibbon } = {}) => {
 				)}
 
 				<View style={styles.messagesArea}>
+					<ChatWallpaper conversationId={conversationId} />
 					{displayData.length === 0 ? (
 						<EmptyChatState name={user?.name} />
 					) : (

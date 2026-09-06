@@ -33,6 +33,7 @@ import {
 } from "@/src/redux/features/chatsSlice";
 import Colors from "@/src/constants/Colors";
 import { useDisplayScale } from "@/src/lib/display/useDisplayScale";
+import { useAppTheme } from "@/src/lib/theme/ThemeContext";
 
 const BUTTON_WIDTH = Dimensions.get("window").width * 0.45;
 
@@ -47,6 +48,7 @@ const ChatRibbon = ({
 }) => {
 	const dispatch = useDispatch();
 	const { scaleFont } = useDisplayScale();
+	const theme = useAppTheme();
 	const pinnedCount = useSelector(
 		(state: any) => state.chats.chats.filter((c: IChatRibbon) => c.pinned).length
 	);
@@ -196,7 +198,7 @@ const ChatRibbon = ({
 							/>
 							<View style={styles.mainContent}>
 								<View style={styles.nameRow}>
-									{content.pinned && <Ionicons name="pin" size={13} color={Colors.focused} />}
+									{content.pinned && <Ionicons name="pin" size={13} color={theme.accent} />}
 									<Text style={{ fontSize: scaleFont(22), fontWeight: "bold" }} numberOfLines={1}>
 										{content?.name}
 									</Text>

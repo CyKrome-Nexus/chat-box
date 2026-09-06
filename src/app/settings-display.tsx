@@ -7,9 +7,11 @@ import DisplayScaleSlider from "@/src/components/settings/DisplayScaleSlider";
 import Colors from "@/src/constants/Colors";
 import { setUseSystemTextSize, setZoomLevel } from "@/src/redux/features/settingsSlice";
 import { DISPLAY_SCALE_PRESETS, useDisplayScale } from "@/src/lib/display/useDisplayScale";
+import { useAppTheme } from "@/src/lib/theme/ThemeContext";
 
 const SettingsDisplay = () => {
 	const dispatch = useDispatch();
+	const theme = useAppTheme();
 	const { scale, scaleFont, scaleSpacing, zoomLevel, useSystemTextSize } = useDisplayScale();
 
 	return (
@@ -26,7 +28,7 @@ const SettingsDisplay = () => {
 
 			<Text style={styles.sectionTitle}>Zoom Level</Text>
 			<View style={[styles.sliderRow, !useSystemTextSize ? undefined : styles.disabled]} pointerEvents={useSystemTextSize ? "none" : "auto"}>
-				<DisplayScaleSlider value={zoomLevel} onChange={(value) => dispatch(setZoomLevel(value))} />
+				<DisplayScaleSlider value={zoomLevel} onChange={(value) => dispatch(setZoomLevel(value))} color={theme.accent} />
 				<Text style={styles.percentLabel}>{Math.round((useSystemTextSize ? scale : zoomLevel) * 100)}%</Text>
 			</View>
 
@@ -37,7 +39,8 @@ const SettingsDisplay = () => {
 						disabled={useSystemTextSize}
 						style={[
 							styles.presetChip,
-							!useSystemTextSize && Math.abs(zoomLevel - preset.value) < 0.01 && styles.presetChipActive,
+							!useSystemTextSize &&
+								Math.abs(zoomLevel - preset.value) < 0.01 && { backgroundColor: theme.accent, borderColor: theme.accent },
 							useSystemTextSize && styles.disabled,
 						]}
 						onPress={() => dispatch(setZoomLevel(preset.value))}

@@ -2,9 +2,9 @@
 
 ## Overview
 Covers:
-- **Theme Modes**: System, Light, Dark Slate, and True OLED Pure Black (`#000000`).
-- **Accent Colors**: Customizable primary brand color adapting outgoing bubbles and active tabs.
-- **Chat Wallpaper Studio**: Vector doodle patterns, gallery photos with Gaussian blur (0–100%) and dimming (0–80%) sliders, and per-chat wallpapers.
+- **Theme Modes**: System, Light, Dark Slate, True OLED Pure Black (`#000000`), and Sepia — now implemented, see [theming-engine.md](../architecture/theming-engine.md).
+- **Accent Colors**: Customizable primary brand color adapting outgoing bubbles and active tabs — now implemented, see [theming-engine.md](../architecture/theming-engine.md).
+- **Chat Wallpaper Studio**: Vector doodle patterns, gallery photos with Gaussian blur (0–100%) and dimming (0–80%) sliders, and per-chat wallpapers — now implemented, see [theming-engine.md](../architecture/theming-engine.md).
 - **Display Zoom Engine**: 80% to 165% text and UI scaling slider with non-clipping flexible bubble architecture — now implemented, see [display-scaling.md](../architecture/display-scaling.md).
 - **Responsive Tablet/Foldable View**: Master-detail dual pane split view on screens >= 600dp — now implemented, see [display-scaling.md](../architecture/display-scaling.md).
 
@@ -17,9 +17,10 @@ subscreens (`src/app/settings-*.tsx`), loaded/saved by `useSettingsPersistence`
 - **Account** (`settings-account.tsx`): privacy toggles (last seen, read receipts), a
   two-factor-authentication toggle, a "Change Phone Number" placeholder, and Delete Account
   (removes the local mock account via `authService.deleteAccount` and logs out).
-- **Chat** (`settings-chat.tsx`): theme switcher (`settings.theme: "system"|"light"|"dark"` — not
-  yet wired to actually restyle the app, see below), a "Back Up Now" stub that just timestamps
-  `lastBackupAt`, and "Clear All Chats" (`messagesSlice.clearAllMessages`).
+- **Chat** (`settings-chat.tsx`): theme switcher (`settings.theme`, 5 modes, now wired to a real
+  `useAppTheme()` Context — see [theming-engine.md](../architecture/theming-engine.md)), an accent
+  color picker, links to Text & Display Size and Chat Wallpaper, a "Back Up Now" stub that just
+  timestamps `lastBackupAt`, and "Clear All Chats" (`messagesSlice.clearAllMessages`).
 - **Notifications** (`settings-notifications.tsx`): sound/vibration/message-preview/group-notification
   toggles. Not yet wired to real notification delivery (see the push notification tickets).
 - **Help** (`settings-help.tsx`): a static FAQ accordion, and placeholder Contact Support/Terms/Privacy
@@ -28,9 +29,9 @@ subscreens (`src/app/settings-*.tsx`), loaded/saved by `useSettingsPersistence`
   from in-memory message attachment sizes (not a real device storage scan), and auto-download
   toggles for photos/videos/documents (not yet enforced anywhere).
 
-`state.settings.theme` is persisted and switchable here, but no screen in the app actually reads
-it to change appearance yet — implementing the full theme engine (dark/light/OLED palettes) is
-still open work, tracked separately.
+`state.settings.theme` is persisted and now read live by `useAppTheme()` — see
+[theming-engine.md](../architecture/theming-engine.md) for exactly which surfaces consume it today
+versus which still use the original static `Colors` module.
 
 ## Log Out
 
