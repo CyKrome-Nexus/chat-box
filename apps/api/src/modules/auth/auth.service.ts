@@ -12,12 +12,12 @@ import type {
 import { env } from "@/config/env";
 import { randomDigits, randomToken, sha256, safeEqual } from "@/lib/crypto";
 import { AppError, badRequest, conflict, forbidden, unauthorized } from "@/lib/errors";
-import { sendMail } from "@/lib/mailer";
+import { sendOtpEmail } from "@/lib/mailer";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { verifySocialToken } from "@/lib/social";
 import { signAccessToken } from "@/lib/tokens";
 import { Conversation } from "@/models/conversation";
-import { Contact, Device, PasswordReset } from "@/models/misc";
+import { Contact, Device, EmailVerification, PasswordReset } from "@/models/misc";
 import { Session } from "@/models/session";
 import { User, type UserDoc } from "@/models/user";
 import { hub } from "@/realtime/hub";
@@ -30,8 +30,8 @@ export interface ClientMeta {
   platform?: string | undefined;
 }
 
-const RESET_TTL_MS = 15 * 60 * 1000;
-const RESET_MAX_ATTEMPTS = 5;
+const CODE_TTL_MINUTES = 10;
+const CODE_MAX_ATTEMPTS = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const isAdminEmail = (email: string | null | undefined) =>
@@ -83,13 +83,45 @@ const assertActive = <T extends UserDoc>(user: T | null): T => {
   return user;
 };
 
+const emailTaken = () => conflict("An account with this email already exists", "EMAIL_TAKEN");
+
+export const requestEmailCode = async (email: string, log: (message: string) => void) => {
+  if (await User.exists({ email })) throw emailTaken();
+  const code = randomDigits(6);
+  await EmailVerification.findOneAndUpdate(
+    { email },
+    {
+      codeHash: sha256(`${email}:${code}`),
+      attempts: 0,
+      expiresAt: new Date(Date.now() + CODE_TTL_MINUTES * 60_000),
+    },
+    { upsert: true },
+  );
+  await sendOtpEmail(email, code, "verify-email", CODE_TTL_MINUTES, log);
+};
+
+const consumeEmailCode = async (email: string, code: string | undefined) => {
+  if (!code) throw new AppError(400, "EMAIL_CODE_REQUIRED", "Enter the code we emailed you");
+  const invalid = badRequest("That code is incorrect or has expired");
+  const pending = await EmailVerification.findOne({ email });
+  if (!pending || pending.expiresAt.getTime() < Date.now() || pending.attempts >= CODE_MAX_ATTEMPTS)
+    throw invalid;
+  if (!safeEqual(pending.codeHash, sha256(`${email}:${code}`))) {
+    pending.attempts += 1;
+    await pending.save();
+    throw invalid;
+  }
+  await pending.deleteOne();
+};
+
 export const register = async (input: RegisterInput, meta: ClientMeta) => {
-  const [emailTaken, phoneTaken] = await Promise.all([
+  const [emailExists, phoneTaken] = await Promise.all([
     input.email ? User.exists({ email: input.email }) : null,
     input.phone ? User.exists({ phone: input.phone }) : null,
   ]);
-  if (emailTaken) throw conflict("An account with this email already exists", "EMAIL_TAKEN");
+  if (emailExists) throw emailTaken();
   if (phoneTaken) throw conflict("An account with this phone number already exists", "PHONE_TAKEN");
+  if (input.email) await consumeEmailCode(input.email, input.code);
 
   const user = await User.create({
     name: input.name,
@@ -225,19 +257,12 @@ export const requestPasswordReset = async (identifier: string, log: (message: st
     {
       codeHash: sha256(`${user._id.toString()}:${code}`),
       attempts: 0,
-      expiresAt: new Date(Date.now() + RESET_TTL_MS),
+      expiresAt: new Date(Date.now() + CODE_TTL_MINUTES * 60_000),
     },
     { upsert: true },
   );
 
-  if (user.email) {
-    await sendMail(
-      user.email,
-      "Your Chatbox verification code",
-      `Your Chatbox verification code is ${code}. It expires in 15 minutes.\n\nIf you didn't request this, you can ignore this email.`,
-    );
-  }
-  if (env.NODE_ENV !== "production") log(`Password reset code for ${user._id.toString()}: ${code}`);
+  if (user.email) await sendOtpEmail(user.email, code, "reset-password", CODE_TTL_MINUTES, log);
 };
 
 export const resetPassword = async (identifier: string, code: string, password: string) => {
@@ -246,7 +271,7 @@ export const resetPassword = async (identifier: string, code: string, password: 
   if (!user) throw invalid;
 
   const reset = await PasswordReset.findOne({ userId: user._id });
-  if (!reset || reset.expiresAt.getTime() < Date.now() || reset.attempts >= RESET_MAX_ATTEMPTS) throw invalid;
+  if (!reset || reset.expiresAt.getTime() < Date.now() || reset.attempts >= CODE_MAX_ATTEMPTS) throw invalid;
   if (!safeEqual(reset.codeHash, sha256(`${user._id.toString()}:${code}`))) {
     reset.attempts += 1;
     await reset.save();

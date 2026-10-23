@@ -32,11 +32,6 @@ export const updateMe = async (userId: string, input: UpdateProfileInput): Promi
     }
     user.handle = input.handle;
   }
-  if (input.email !== undefined && input.email !== user.email) {
-    if (await User.exists({ email: input.email, _id: { $ne: user._id } }))
-      throw conflict("That email is already in use", "EMAIL_TAKEN");
-    user.email = input.email;
-  }
   if (input.phone !== undefined && input.phone !== user.phone) {
     if (await User.exists({ phone: input.phone, _id: { $ne: user._id } }))
       throw conflict("That phone number is already in use", "PHONE_TAKEN");

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { LIMITS } from "../constants";
-import { emailSchema, handleSchema, nameSchema, objectIdSchema, phoneSchema } from "./common";
+import { handleSchema, nameSchema, objectIdSchema, phoneSchema } from "./common";
 
 export const visibilitySchema = z.enum(["everyone", "contacts", "nobody"]);
 
@@ -9,7 +9,6 @@ export const updateProfileSchema = z.object({
   name: nameSchema.optional(),
   about: z.string().trim().max(LIMITS.aboutMax).nullable().optional(),
   handle: handleSchema.nullable().optional(),
-  email: emailSchema.optional(),
   phone: phoneSchema.optional(),
 });
 

@@ -239,9 +239,6 @@ importers:
       nanoid:
         specifier: ^5.1.6
         version: 5.1.16
-      nodemailer:
-        specifier: ^7.0.10
-        version: 7.0.13
       socket.io:
         specifier: ^4.8.1
         version: 4.8.4(supports-color@8.1.1)
@@ -255,9 +252,6 @@ importers:
       '@types/node':
         specifier: ^22.18.12
         version: 22.20.5
-      '@types/nodemailer':
-        specifier: ^7.0.3
-        version: 7.0.12
       mongodb-memory-server:
         specifier: ^10.3.0
         version: 10.4.3(supports-color@8.1.1)
@@ -2641,9 +2635,6 @@ packages:
   '@types/node@22.20.5':
     resolution: {integrity: sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==}
 
-  '@types/nodemailer@7.0.12':
-    resolution: {integrity: sha512-80vKwiIsVSyFA1rRovH59jNPLBOuc6dRZIHEu40gXTkBkZnQv8vog1xSGEb9j5q/tdMAs5ivvDR2pLTU0hGHXA==}
-
   '@types/react-dom@19.1.11':
     resolution: {integrity: sha512-3BKc/yGdNTYQVVw4idqHtSOcFsgGuBbMveKCOgF8wQ5QtrYOc3jDIlzg3jef04zcXFIHLelyGlj0T+BJ8+KN+w==}
     peerDependencies:
@@ -4858,10 +4849,6 @@ packages:
   node-releases@2.0.59:
     resolution: {integrity: sha512-5qr2okC4ItAI0hG5SaV0HoYMpnM/Y6+Oqr7AmPYy/2uEoGvS+GbSKLeRxSS1uAdu59yz0ouzcuXievSgg///WA==}
     engines: {node: '>=18'}
-
-  nodemailer@7.0.13:
-    resolution: {integrity: sha512-PNDFSJdP+KFgdsG3ZzMXCgquO7I6McjY2vlqILjtJd0hy8wEvtugS9xKRF2NWlPNGxvLCXlTNIae4serI7dinw==}
-    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -8558,10 +8545,6 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
-  '@types/nodemailer@7.0.12':
-    dependencies:
-      '@types/node': 22.20.5
-
   '@types/react-dom@19.1.11(@types/react@19.1.17)':
     dependencies:
       '@types/react': 19.1.17
@@ -11070,8 +11053,6 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.59: {}
-
-  nodemailer@7.0.13: {}
 
   normalize-path@3.0.0: {}
 

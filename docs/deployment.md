@@ -45,9 +45,15 @@ COOKIE_SECURE=true
 COOKIE_DOMAIN=.chatbox.example.com
 ADMIN_EMAILS=you@example.com
 STORAGE_DRIVER=local
-SMTP_URL=smtps://user:pass@smtp.example.com:465
-MAIL_FROM=Chatbox <no-reply@chatbox.example.com>
+EMAIL_SERVICE_KEY_ID=chatbox-production
+EMAIL_SERVICE_PRIVATE_KEY=<base64 PKCS#8 P-256 private key>
 ```
+
+Verification and password-reset emails are rendered and sent by the CyKrome core service
+(`https://api.cykrome.com`) with the Chatbox template from `CyKrome-Email-Templates`. Each request is
+signed with `EMAIL_SERVICE_PRIVATE_KEY`; the core service holds only the matching public key, registered
+under `EMAIL_SERVICE_KEY_ID` (`chatbox-production`, `chatbox-qa` or `chatbox-dev`). To rotate a key,
+generate a new pair, register the public key in the core service, deploy it, then update this variable.
 
 > `MESSAGE_ENCRYPTION_KEY` encrypts every stored message. Back it up somewhere safe — losing it makes
 > existing messages unreadable — and never commit it.

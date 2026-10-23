@@ -4,7 +4,14 @@ import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "reac
 import { Link, useNavigate } from "react-router";
 import type { z } from "zod";
 
-import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from "@chatbox/shared";
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  otpCodeSchema,
+  registerSchema,
+  resetPasswordSchema,
+  type RegisterInput,
+} from "@chatbox/shared";
 
 import { Button, Field, Underline } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
@@ -151,12 +158,28 @@ export const SignInPage = () => {
 
 export const SignUpPage = () => {
   const { signUp } = useAuth();
-  const [form, setForm] = useState({ name: "", contact: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ name: "", contact: "", password: "", confirm: "", code: "" });
+  const [pending, setPending] = useState<RegisterInput | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [failure, setFailure] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const submit = async (event: FormEvent) => {
+  const run = async (task: () => Promise<void>) => {
+    setFailure(null);
+    setLoading(true);
+    try {
+      await task();
+    } catch (error) {
+      setFailure(errorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendCode = (email: string) => api.post("/auth/email/code", { email });
+
+  const submit = (event: FormEvent) => {
     event.preventDefault();
     const isEmail = form.contact.includes("@");
     const parsed = registerSchema.safeParse({
@@ -170,19 +193,79 @@ export const SignUpPage = () => {
     setErrors(next);
     if (!parsed.success || next.confirm) return;
 
-    setFailure(null);
-    setLoading(true);
-    try {
-      await signUp(parsed.data);
-    } catch (error) {
-      setFailure(errorMessage(error));
-    } finally {
-      setLoading(false);
-    }
+    void run(async () => {
+      if (!parsed.data.email) return signUp(parsed.data);
+      await sendCode(parsed.data.email);
+      setNotice(null);
+      setPending(parsed.data);
+    });
   };
+
+  const verify = (event: FormEvent) => {
+    event.preventDefault();
+    const parsed = otpCodeSchema.safeParse(form.code);
+    if (!parsed.success || !pending) return setErrors({ code: parsed.error?.issues[0]?.message });
+    setErrors({});
+    void run(() => signUp({ ...pending, code: parsed.data }));
+  };
+
+  const resend = () =>
+    void run(async () => {
+      if (!pending?.email) return;
+      await sendCode(pending.email);
+      setNotice("We sent you a new code.");
+    });
 
   const update = (key: keyof typeof form) => (event: ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [key]: event.target.value });
+
+  if (pending?.email)
+    return (
+      <AuthShell
+        highlight="Verify"
+        title="your email"
+        subtitle={`Enter the 6-digit code we sent to ${pending.email}.`}
+      >
+        <form onSubmit={verify} className="flex flex-col gap-6" noValidate>
+          <Field
+            label="Verification code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            autoFocus
+            value={form.code}
+            error={errors.code}
+            onChange={(event) => setForm({ ...form, code: event.target.value.replace(/\D/g, "") })}
+          />
+          {notice ? <p className="text-sm text-[var(--text-muted)] animate-fade-in">{notice}</p> : null}
+          <FormError message={failure} />
+          <Button type="submit" loading={loading} disabled={form.code.length !== 6} className="mt-6">
+            Create an account
+          </Button>
+          <div className="flex items-center justify-center gap-4 text-sm">
+            <button
+              type="button"
+              onClick={resend}
+              disabled={loading}
+              className="font-medium text-brand-600 hover:underline disabled:opacity-50 dark:text-brand-400"
+            >
+              Resend code
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPending(null);
+                setFailure(null);
+                setForm({ ...form, code: "" });
+              }}
+              className="font-medium text-[var(--text-muted)] hover:underline"
+            >
+              Change email
+            </button>
+          </div>
+        </form>
+      </AuthShell>
+    );
 
   return (
     <AuthShell
@@ -229,7 +312,7 @@ export const SignUpPage = () => {
           disabled={!form.name || !form.contact || !form.password}
           className="mt-6"
         >
-          Create an account
+          {form.contact.includes("@") ? "Continue" : "Create an account"}
         </Button>
         <p className="text-center text-sm text-[var(--text-muted)]">
           Existing account?{" "}
@@ -290,14 +373,16 @@ export const ForgotPasswordPage = () => {
       title="your password"
       subtitle={
         step === "request"
-          ? "Enter the email or phone linked to your account and we'll send you a code."
-          : "Enter the 6-digit code we sent you and choose a new password."
+          ? "Enter the email linked to your account and we'll email you a code."
+          : "Enter the 6-digit code we emailed you and choose a new password."
       }
     >
       {step === "request" ? (
         <form onSubmit={request} className="flex flex-col gap-6" noValidate>
           <Field
-            label="Your email or phone"
+            label="Your email"
+            type="email"
+            autoComplete="email"
             value={form.identifier}
             error={errors.identifier}
             onChange={(event) => setForm({ ...form, identifier: event.target.value })}
