@@ -1,0 +1,17 @@
+**/node_modules
+**/dist
+**/.turbo
+**/.expo
+**/.env
+**/.env.*
+!**/.env.example
+**/uploads
+**/coverage
+.git
+.agents
+.claude
+outputs
+apps/mobile
+docs
+*.log
+.DS_Store

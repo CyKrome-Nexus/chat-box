@@ -1,0 +1,4 @@
+{
+  "extends": "@chatbox/tsconfig/base.json",
+  "include": ["src"]
+}
