@@ -1,0 +1,10 @@
+node_modules
+dist
+.turbo
+.expo
+pnpm-lock.yaml
+apps/mobile/ios
+apps/mobile/android
+apps/mobile/assets
+apps/mobile/docs
+apps/mobile/src

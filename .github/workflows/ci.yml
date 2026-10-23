@@ -1,0 +1,61 @@
+# CI/CD for Chatbox. See docs/deployment.md.
+#
+#   feature/* ──PR──▶ dev ──PR──▶ qa ──PR──▶ main
+#
+# Pushes to an environment branch trigger that environment's Dokploy deploy webhooks; Dokploy
+# rebuilds the API and web app from the branch.
+
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [dev, qa, main]
+  push:
+    branches: [dev, qa, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: Typecheck, test & build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g pnpm@12.4.2
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm turbo run build --filter=@chatbox/api --filter=@chatbox/web
+
+  deploy:
+    name: Deploy ${{ github.ref_name }}
+    needs: verify
+    if: github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-${{ github.ref_name }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy and verify
+        env:
+          BRANCH: ${{ github.ref_name }}
+          WEBHOOK_API_DEV: ${{ secrets.DOKPLOY_WEBHOOK_API_DEV }}
+          WEBHOOK_WEB_DEV: ${{ secrets.DOKPLOY_WEBHOOK_WEB_DEV }}
+          WEBHOOK_API_QA: ${{ secrets.DOKPLOY_WEBHOOK_API_QA }}
+          WEBHOOK_WEB_QA: ${{ secrets.DOKPLOY_WEBHOOK_WEB_QA }}
+          WEBHOOK_API_PRODUCTION: ${{ secrets.DOKPLOY_WEBHOOK_API_PRODUCTION }}
+          WEBHOOK_WEB_PRODUCTION: ${{ secrets.DOKPLOY_WEBHOOK_WEB_PRODUCTION }}
+          API_URL_DEV: ${{ vars.API_URL_DEV }}
+          API_URL_QA: ${{ vars.API_URL_QA }}
+          API_URL_PRODUCTION: ${{ vars.API_URL_PRODUCTION }}
+        run: ./scripts/deploy.sh "$BRANCH"
