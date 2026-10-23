@@ -1,9 +1,9 @@
 # Deployment (Dokploy)
 
-The API and web app each ship a multi-stage Dockerfile, built from the **repository root**. CI
-publishes them as `ghcr.io/cykrome-nexus/chat-box-api` and `ghcr.io/cykrome-nexus/chat-box-web`
-(multi-arch, tagged `dev` / `qa` / `main` and `sha-<commit>`), and Dokploy runs those images. MongoDB
-and Redis run as Dokploy-managed databases so they get backups and monitoring.
+The API and web app each ship a multi-stage Dockerfile, built from the **repository root**. Dokploy
+clones this (public) repository and builds each environment from its branch, so no registry
+credentials are needed. MongoDB and Redis run as Dokploy-managed databases so they get backups and
+monitoring.
 
 | Branch | Environment | Dokploy project environment |
 | ------ | ----------- | --------------------------- |
@@ -21,13 +21,14 @@ In your Dokploy project create:
 
 ## 2. API application
 
-| Setting      | Value                                                                      |
-| ------------ | -------------------------------------------------------------------------- |
-| Source       | Docker image `ghcr.io/cykrome-nexus/chat-box-api:<branch>` (GHCR registry) |
-| Port         | `4000`                                                                     |
-| Domain       | e.g. `api.chatbox.example.com` (HTTPS, Let's Encrypt)                      |
-| Health check | `GET /ready`                                                               |
-| Volume       | mount a persistent volume at `/data/uploads` when `STORAGE_DRIVER=local`   |
+| Setting      | Value                                                                       |
+| ------------ | --------------------------------------------------------------------------- |
+| Source       | Git `https://github.com/CyKrome-Nexus/chat-box.git`, branch per environment |
+| Build        | Dockerfile `apps/api/Dockerfile`, context `.`                               |
+| Port         | `4000`                                                                      |
+| Domain       | e.g. `api.chatbox.example.com` (HTTPS, Let's Encrypt)                       |
+| Health check | `GET /ready`                                                                |
+| Volume       | mount a persistent volume at `/data/uploads` when `STORAGE_DRIVER=local`    |
 
 Environment (see `apps/api/.env.example` for every option):
 
@@ -53,12 +54,13 @@ MAIL_FROM=Chatbox <no-reply@chatbox.example.com>
 
 ## 3. Web application
 
-| Setting     | Value                                                      |
-| ----------- | ---------------------------------------------------------- |
-| Source      | Docker image `ghcr.io/cykrome-nexus/chat-box-web:<branch>` |
-| Environment | `API_URL=https://api.chatbox.example.com`                  |
-| Port        | `80`                                                       |
-| Domain      | e.g. `chatbox.example.com`                                 |
+| Setting     | Value                                         |
+| ----------- | --------------------------------------------- |
+| Source      | Git, same repository and branch as the API    |
+| Build       | Dockerfile `apps/web/Dockerfile`, context `.` |
+| Environment | `API_URL=https://api.chatbox.example.com`     |
+| Port        | `80`                                          |
+| Domain      | e.g. `chatbox.example.com`                    |
 
 `API_URL` is written into `/runtime-config.js` when the container starts, so the same image serves
 every environment.
@@ -100,9 +102,9 @@ MONGODB_URI=… pnpm --filter @chatbox/api admin:promote you@example.com
 ## 7. CI/CD
 
 `.github/workflows/ci.yml` typechecks, tests and builds every PR. Pushes to `dev`, `qa` and `main`
-also publish both images and, once the repository variable `DEPLOY_ENABLED` is `true`, run
-`scripts/deploy.sh`. It calls the environment's Dokploy deploy webhooks and waits until
-`GET /health` on the API reports the pushed commit.
+also run `scripts/deploy.sh` once the repository variable `DEPLOY_ENABLED` is `true`. It calls the
+environment's Dokploy deploy webhooks (Dokploy then rebuilds from the branch) and waits until the API
+restarts and `GET /ready` succeeds.
 
 | Kind      | Name                                                                                        |
 | --------- | ------------------------------------------------------------------------------------------- |
