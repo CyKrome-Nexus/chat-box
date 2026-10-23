@@ -99,9 +99,11 @@ export const buildApp = async (): Promise<FastifyInstance> => {
     reply.status(404).send({ error: { code: "NOT_FOUND", message: "Route not found" } }),
   );
 
+  const startedAt = new Date().toISOString();
   app.get("/health", { config: { rateLimit: false } }, async () => ({
     status: "ok",
     version: process.env.GIT_SHA ?? "dev",
+    startedAt,
   }));
   app.get("/ready", { config: { rateLimit: false } }, async (_request, reply) => {
     const ready = isDatabaseReady();
