@@ -1,0 +1,101 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #eefaf8;
+  --color-brand-100: #d7f2ed;
+  --color-brand-400: #3dbca9;
+  --color-brand-500: #20a090;
+  --color-brand-600: #24786d;
+  --color-brand-700: #1b5c54;
+
+  --color-ink: #000e08;
+  --color-ink-soft: #1a2321;
+  --color-muted: #797c7b;
+  --color-line: #eef1f1;
+  --color-surface: #f3f6f6;
+  --color-bubble: #f2f7fb;
+  --color-danger: #ea3736;
+  --color-online: #0fe16d;
+
+  --radius-sheet: 2.5rem;
+
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-fade-in: fade-in 180ms var(--ease-spring);
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+:root {
+  --bg: #ffffff;
+  --bg-elevated: #ffffff;
+  --text: var(--color-ink);
+  --text-muted: var(--color-muted);
+  --field: var(--color-surface);
+  --bubble-in: var(--color-bubble);
+  --border: var(--color-line);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0b1210;
+  --bg-elevated: #121b19;
+  --text: #f1f5f4;
+  --text-muted: #9aa3a1;
+  --field: #1a2522;
+  --bubble-in: #1a2522;
+  --border: #1f2a27;
+  color-scheme: dark;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-brand-500) 30%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--text-muted) 40%, transparent) transparent;
+}

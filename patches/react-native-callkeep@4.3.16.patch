@@ -1,0 +1,29 @@
+diff --git a/android/src/main/java/io/wazo/callkeep/RNCallKeepModule.java b/android/src/main/java/io/wazo/callkeep/RNCallKeepModule.java
+index 025480a..a3a176c 100644
+--- a/android/src/main/java/io/wazo/callkeep/RNCallKeepModule.java
++++ b/android/src/main/java/io/wazo/callkeep/RNCallKeepModule.java
+@@ -434,7 +434,12 @@ public class RNCallKeepModule extends ReactContextBaseJavaModule implements Life
+         this.hasListeners = false;
+     }
+ 
+-    @ReactMethod
++    // Not @ReactMethod: the new architecture's TurboModule interop requires
++    // every JS-exposed method name to be unique, and the JS side of this
++    // library (index.js) only ever calls the 4-arg overload below on
++    // Android. Keeping this one also annotated crashed the app on startup
++    // with "Module exports two methods to JavaScript with the same name:
++    // displayIncomingCall" the instant anything touched this native module.
+     public void displayIncomingCall(String uuid, String number, String callerName) {
+         this.displayIncomingCall(uuid, number, callerName, false, null);
+     }
+@@ -483,7 +488,9 @@ public class RNCallKeepModule extends ReactContextBaseJavaModule implements Life
+         conn.onAnswer();
+     }
+ 
+-    @ReactMethod
++    // Not @ReactMethod — same reasoning as displayIncomingCall above: the JS
++    // side only ever calls the 4-arg overload on Android, and TurboModule
++    // interop requires unique JS-exposed method names.
+     public void startCall(String uuid, String number, String callerName) {
+         this.startCall(uuid, number, callerName, false, null);
+     }

@@ -1,0 +1,49 @@
+{
+  "name": "@chatbox/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "admin:promote": "tsx --env-file-if-exists=.env scripts/promote-admin.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/lib-storage": "^3.700.0",
+    "@chatbox/shared": "workspace:*",
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^11.1.0",
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/multipart": "^9.2.1",
+    "@fastify/rate-limit": "^10.3.0",
+    "@node-rs/argon2": "^2.0.2",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "expo-server-sdk": "^3.15.0",
+    "fastify": "^5.6.1",
+    "fastify-plugin": "^5.1.0",
+    "fastify-type-provider-zod": "^6.1.0",
+    "file-type": "^21.0.0",
+    "ioredis": "^5.8.2",
+    "jose": "^6.1.0",
+    "mongoose": "^8.19.2",
+    "nanoid": "^5.1.6",
+    "nodemailer": "^7.0.10",
+    "socket.io": "^4.8.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@chatbox/tsconfig": "workspace:*",
+    "@types/node": "^22.18.12",
+    "@types/nodemailer": "^7.0.3",
+    "mongodb-memory-server": "^10.3.0",
+    "pino-pretty": "^13.1.2",
+    "socket.io-client": "^4.8.1",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.6",
+    "vitest": "^3.2.4"
+  }
+}
