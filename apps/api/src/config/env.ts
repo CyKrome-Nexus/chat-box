@@ -55,8 +55,9 @@ const envSchema = z
     S3_PUBLIC_URL: z.string().optional(),
     S3_FORCE_PATH_STYLE: boolean,
 
-    SMTP_URL: z.string().optional(),
-    MAIL_FROM: z.string().default("Chatbox <no-reply@localhost>"),
+    EMAIL_SERVICE_URL: z.url().default("https://api.cykrome.com"),
+    EMAIL_SERVICE_KEY_ID: z.string().optional(),
+    EMAIL_SERVICE_PRIVATE_KEY: z.string().optional(),
 
     EXPO_ACCESS_TOKEN: z.string().optional(),
 
@@ -80,6 +81,13 @@ const envSchema = z
         if (!env[key])
           ctx.addIssue({ code: "custom", path: [key], message: "Required when STORAGE_DRIVER=s3" });
       }
+    }
+    if (Boolean(env.EMAIL_SERVICE_KEY_ID) !== Boolean(env.EMAIL_SERVICE_PRIVATE_KEY)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["EMAIL_SERVICE_PRIVATE_KEY"],
+        message: "Set EMAIL_SERVICE_KEY_ID and EMAIL_SERVICE_PRIVATE_KEY together",
+      });
     }
     if (env.TURN_URLS.length > 0 && !env.TURN_SECRET) {
       ctx.addIssue({ code: "custom", path: ["TURN_SECRET"], message: "Required when TURN_URLS is set" });

@@ -11,10 +11,11 @@ import { AuthHeader } from "@/src/components/auth/AuthHeader";
 import { SocialButtons } from "@/src/components/auth/SocialButtons";
 import { AppText, Divider, PrimaryButton, ScalePressable, UnderlineField, spacing } from "@/src/components/ui";
 import CountryCodePicker, { COUNTRY_CODES, type ICountryCode } from "@/src/components/inputs/CountryCodePicker";
-import { login, signUp } from "@/src/lib/auth/authService";
+import { login, requestSignUpCode, signUp } from "@/src/lib/auth/authService";
 import { updateUser } from "@/src/redux/features/userSlice";
 
 type TMode = "login" | "signup";
+type TMethod = "phone" | "email";
 
 const fieldError = (value: string, check: () => string | null) => (value ? (check() ?? undefined) : undefined);
 
@@ -26,7 +27,12 @@ const Authentication = () => {
 
 	const [identifier, setIdentifier] = useState("");
 	const [name, setName] = useState("");
+	const [method, setMethod] = useState<TMethod>("phone");
 	const [phone, setPhone] = useState("");
+	const [email, setEmail] = useState("");
+	const [code, setCode] = useState("");
+	const [codeSentTo, setCodeSentTo] = useState<string | null>(null);
+	const [notice, setNotice] = useState<string | null>(null);
 	const [country, setCountry] = useState<ICountryCode>(COUNTRY_CODES[0]);
 	const [password, setPassword] = useState("");
 	const [confirm, setConfirm] = useState("");
@@ -45,33 +51,64 @@ const Authentication = () => {
 			}),
 			name: fieldError(name, () => (name.trim().length >= 2 ? null : "Enter your full name")),
 			phone: fieldError(phone, () => (phoneSchema.safeParse(fullPhone).success ? null : "Enter a valid phone number")),
+			email: fieldError(email, () => (emailSchema.safeParse(email.trim()).success ? null : "Enter a valid email")),
 			password:
 				mode === "signup" ? fieldError(password, () => passwordSchema.safeParse(password).error?.issues[0]?.message ?? null) : undefined,
 			confirm: fieldError(confirm, () => (confirm === password ? null : "Passwords don't match")),
 		}),
-		[identifier, name, phone, fullPhone, password, confirm, mode]
+		[identifier, name, phone, fullPhone, email, password, confirm, mode]
 	);
 
 	const valid =
 		mode === "login"
 			? loginSchema.safeParse({ identifier, password }).success && !errors.identifier
-			: name.trim().length >= 2 && !errors.phone && phone.length > 0 && passwordSchema.safeParse(password).success && confirm === password;
+			: name.trim().length >= 2 &&
+				passwordSchema.safeParse(password).success &&
+				confirm === password &&
+				(method === "phone" ? !errors.phone && phone.length > 0 : !errors.email && email.length > 0) &&
+				(!codeSentTo || /^\d{6}$/.test(code));
 
-	const submit = async () => {
-		if (!valid || submitting) return;
+	const run = async (task: () => Promise<void>) => {
 		setFailure(null);
 		setSubmitting(true);
 		try {
-			const user =
-				mode === "login"
-					? await login({ identifier: identifier.trim(), password })
-					: await signUp({ name: name.trim(), identifier: fullPhone, password });
-			dispatch(updateUser(user));
+			await task();
 		} catch (error) {
 			setFailure(error instanceof Error ? error.message : "Something went wrong. Please try again.");
 		} finally {
 			setSubmitting(false);
 		}
+	};
+
+	const sendCode = (address: string, resent = false) =>
+		run(async () => {
+			await requestSignUpCode(address);
+			setCodeSentTo(address);
+			setNotice(resent ? "We sent you a new code." : null);
+		});
+
+	const submit = async () => {
+		if (!valid || submitting) return;
+		if (mode === "signup" && method === "email" && !codeSentTo) return sendCode(email.trim());
+		await run(async () => {
+			const user =
+				mode === "login"
+					? await login({ identifier: identifier.trim(), password })
+					: await signUp({
+							name: name.trim(),
+							identifier: method === "phone" ? fullPhone : email.trim(),
+							password,
+							code: codeSentTo ? code : undefined,
+						});
+			dispatch(updateUser(user));
+		});
+	};
+
+	const switchMethod = () => {
+		setMethod(method === "phone" ? "email" : "phone");
+		setCodeSentTo(null);
+		setCode("");
+		setFailure(null);
 	};
 
 	return (
@@ -83,7 +120,7 @@ const Authentication = () => {
 			>
 				<AuthHeader
 					highlight={mode === "login" ? "Log in" : "Sign up"}
-					rest={mode === "login" ? "to Chatbox" : "with Phone"}
+					rest={mode === "login" ? "to Chatbox" : method === "phone" ? "with Phone" : "with Email"}
 					subtitle={
 						mode === "login"
 							? "Welcome back! Sign in using your social account or email to continue us"
@@ -125,19 +162,69 @@ const Authentication = () => {
 						</>
 					) : (
 						<>
-							<UnderlineField label="Your name" value={name} onChangeText={setName} error={errors.name} autoComplete="name" />
-							<View>
-								<View style={styles.phoneRow}>
-									<View style={styles.countryPicker}>
-										<CountryCodePicker value={country} onChange={setCountry} />
+							{codeSentTo ? (
+								<Animated.View entering={FadeInDown.springify().damping(20)} style={styles.codeStep}>
+									<AppText variant="label" weight="regular" tone="muted">
+										Enter the 6-digit code we sent to {codeSentTo}.
+									</AppText>
+									<UnderlineField
+										label="Verification code"
+										value={code}
+										onChangeText={(value) => setCode(value.replace(/\D/g, "").slice(0, 6))}
+										keyboardType="number-pad"
+										autoComplete="one-time-code"
+										autoFocus
+									/>
+									{notice ? (
+										<AppText variant="label" weight="regular" tone="muted">
+											{notice}
+										</AppText>
+									) : null}
+									<View style={styles.codeActions}>
+										<ScalePressable accessibilityLabel="Resend code" onPress={() => void sendCode(codeSentTo, true)} disabled={submitting}>
+											<AppText variant="label" tone="brand">
+												Resend code
+											</AppText>
+										</ScalePressable>
+										<ScalePressable accessibilityLabel="Change email" onPress={() => setCodeSentTo(null)}>
+											<AppText variant="label" weight="regular" tone="muted">
+												Change email
+											</AppText>
+										</ScalePressable>
 									</View>
-									<View style={styles.flex}>
-										<UnderlineField label="Your Number" value={phone} onChangeText={setPhone} error={errors.phone} keyboardType="phone-pad" autoComplete="tel" />
-									</View>
-								</View>
-							</View>
-							<UnderlineField label="Password" value={password} onChangeText={setPassword} error={errors.password} secure autoComplete="new-password" />
-							<UnderlineField label="Confirm Password" value={confirm} onChangeText={setConfirm} error={errors.confirm} secure autoComplete="new-password" />
+								</Animated.View>
+							) : (
+								<>
+									<UnderlineField label="Your name" value={name} onChangeText={setName} error={errors.name} autoComplete="name" />
+									{method === "phone" ? (
+										<View style={styles.phoneRow}>
+											<View style={styles.countryPicker}>
+												<CountryCodePicker value={country} onChange={setCountry} />
+											</View>
+											<View style={styles.flex}>
+												<UnderlineField label="Your Number" value={phone} onChangeText={setPhone} error={errors.phone} keyboardType="phone-pad" autoComplete="tel" />
+											</View>
+										</View>
+									) : (
+										<UnderlineField
+											label="Your email"
+											value={email}
+											onChangeText={setEmail}
+											error={errors.email}
+											autoCapitalize="none"
+											keyboardType="email-address"
+											autoComplete="email"
+										/>
+									)}
+									<UnderlineField label="Password" value={password} onChangeText={setPassword} error={errors.password} secure autoComplete="new-password" />
+									<UnderlineField label="Confirm Password" value={confirm} onChangeText={setConfirm} error={errors.confirm} secure autoComplete="new-password" />
+									<ScalePressable accessibilityLabel="Switch sign-up method" onPress={switchMethod} style={styles.link}>
+										<AppText variant="label" tone="brand">
+											{method === "phone" ? "Sign up with email instead" : "Sign up with phone instead"}
+										</AppText>
+									</ScalePressable>
+								</>
+							)}
 						</>
 					)}
 					{failure ? (
@@ -150,7 +237,12 @@ const Authentication = () => {
 				</Animated.View>
 
 				<View style={styles.footer}>
-					<PrimaryButton title={mode === "login" ? "Log in" : "Create an account"} onPress={() => void submit()} disabled={!valid} loading={submitting} />
+					<PrimaryButton
+						title={mode === "login" ? "Log in" : method === "email" && !codeSentTo ? "Continue" : "Create an account"}
+						onPress={() => void submit()}
+						disabled={!valid}
+						loading={submitting}
+					/>
 					{mode === "login" ? (
 						<ScalePressable accessibilityLabel="Forgot password" onPress={() => router.push("/forgot-password")} style={styles.link}>
 							<AppText variant="label" tone="brand">
@@ -180,6 +272,8 @@ const styles = StyleSheet.create({
 	failure: { padding: 12, borderRadius: 12, backgroundColor: "#FDECEC" },
 	footer: { marginTop: "auto", paddingTop: 40, gap: 16 },
 	link: { alignSelf: "center", paddingVertical: 4 },
+	codeStep: { gap: 24 },
+	codeActions: { flexDirection: "row", justifyContent: "center", gap: 24 },
 });
 
 export default Authentication;

@@ -9,12 +9,22 @@ export const identifierSchema = z
   .max(254)
   .transform((value) => (value.includes("@") ? value.toLowerCase() : value.replace(/[\s()-]/g, "")));
 
+export const otpCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, "Enter the 6-digit code");
+
+export const emailCodeSchema = z.object({
+  email: emailSchema,
+});
+
 export const registerSchema = z
   .object({
     name: nameSchema,
     email: emailSchema.optional(),
     phone: phoneSchema.optional(),
     password: passwordSchema,
+    code: otpCodeSchema.optional(),
   })
   .refine((body) => Boolean(body.email || body.phone), {
     message: "Provide an email or phone number",
@@ -44,10 +54,7 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   identifier: identifierSchema,
-  code: z
-    .string()
-    .trim()
-    .regex(/^\d{6}$/, "Enter the 6-digit code"),
+  code: otpCodeSchema,
   password: passwordSchema,
 });
 
@@ -65,6 +72,7 @@ export const deviceInfoSchema = z.object({
   platform: z.enum(["ios", "android", "web"]).optional(),
 });
 
+export type EmailCodeInput = z.infer<typeof emailCodeSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SocialProvider = z.infer<typeof socialProviderSchema>;

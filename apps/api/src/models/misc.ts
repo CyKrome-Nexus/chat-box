@@ -167,3 +167,21 @@ const passwordResetSchema = new Schema<PasswordResetDoc>({
 passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export const PasswordReset = model<PasswordResetDoc>("PasswordReset", passwordResetSchema);
+
+export interface EmailVerificationDoc {
+  _id: Types.ObjectId;
+  email: string;
+  codeHash: string;
+  attempts: number;
+  expiresAt: Date;
+}
+
+const emailVerificationSchema = new Schema<EmailVerificationDoc>({
+  email: { type: String, required: true, unique: true },
+  codeHash: { type: String, required: true },
+  attempts: { type: Number, default: 0 },
+  expiresAt: { type: Date, required: true },
+});
+emailVerificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+export const EmailVerification = model<EmailVerificationDoc>("EmailVerification", emailVerificationSchema);
