@@ -6,6 +6,7 @@ import {
   changePasswordSchema,
   deleteAccountSchema,
   deviceInfoSchema,
+  emailCodeSchema,
   forgotPasswordSchema,
   idParamsSchema,
   loginSchema,
@@ -51,6 +52,15 @@ const meta = (request: FastifyRequest, device?: z.infer<typeof deviceInfoSchema>
 });
 
 export const authRoutes: FastifyPluginAsyncZod = async (app) => {
+  app.post(
+    "/email/code",
+    { schema: { body: emailCodeSchema }, config: veryStrict },
+    async (request, reply) => {
+      await auth.requestEmailCode(request.body.email, (message) => request.log.warn(message));
+      return reply.status(202).send({ message: "We sent a verification code to your email." });
+    },
+  );
+
   app.post(
     "/register",
     { schema: { body: registerSchema.and(deviceInfoSchema) }, config: strict },

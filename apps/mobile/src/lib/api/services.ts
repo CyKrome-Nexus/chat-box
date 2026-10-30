@@ -39,6 +39,7 @@ const deviceInfo = () => ({
 const items = <T>(promise: Promise<{ items: T[] }>) => promise.then((response) => response.items);
 
 export const authApi = {
+    emailCode: (email: string) => api.post<{ message: string }>("/auth/email/code", { email }),
     register: (input: RegisterInput) => api.post<AuthResponse>("/auth/register", { ...input, ...deviceInfo() }),
     login: (input: LoginInput) => api.post<AuthResponse>("/auth/login", { ...input, ...deviceInfo() }),
     social: (input: SocialLoginInput) => api.post<AuthResponse>("/auth/social", { ...input, ...deviceInfo() }),

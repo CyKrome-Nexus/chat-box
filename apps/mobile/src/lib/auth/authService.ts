@@ -29,8 +29,12 @@ export const establishSession = async (response: AuthResponse, accountId?: strin
 const splitIdentifier = (identifier: string) =>
     identifier.includes("@") ? { email: identifier.trim().toLowerCase() } : { phone: identifier.replace(/[\s()-]/g, "") };
 
-export const signUp = ({ name, identifier, password }: { name: string; identifier: string; password: string }, accountId?: string) =>
-    run(async () => establishSession(await authApi.register({ name, password, ...splitIdentifier(identifier) }), accountId));
+export const requestSignUpCode = (email: string) => run(() => authApi.emailCode(email.trim().toLowerCase()));
+
+export const signUp = (
+    { name, identifier, password, code }: { name: string; identifier: string; password: string; code?: string },
+    accountId?: string,
+) => run(async () => establishSession(await authApi.register({ name, password, code, ...splitIdentifier(identifier) }), accountId));
 
 export const login = ({ identifier, password }: { identifier: string; password: string }, accountId?: string) =>
     run(async () => establishSession(await authApi.login({ identifier, password }), accountId));

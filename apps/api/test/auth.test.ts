@@ -4,7 +4,8 @@ import type { AuthResponse, AuthTokens, CurrentUser } from "@chatbox/shared";
 
 import { PasswordReset } from "@/models/misc";
 import { User } from "@/models/user";
-import { json, registerUser, setupServer } from "./helpers";
+import { emailCode, json, registerUser, setupServer } from "./helpers";
+import { outbox } from "./outbox";
 
 const ctx = setupServer();
 
@@ -38,9 +39,15 @@ describe("auth", () => {
     const duplicate = await ctx.app.inject({
       method: "POST",
       url: "/v1/auth/register",
-      payload: { name: "Dup", email: "dup@example.com", password: "correct-horse-1" },
+      payload: { name: "Dup", email: "dup@example.com", password: "correct-horse-1", code: "123456" },
     });
     expect(duplicate.statusCode).toBe(409);
+    const duplicateCode = await ctx.app.inject({
+      method: "POST",
+      url: "/v1/auth/email/code",
+      payload: { email: "dup@example.com" },
+    });
+    expect(duplicateCode.statusCode).toBe(409);
 
     const weak = await ctx.app.inject({
       method: "POST",
@@ -96,7 +103,12 @@ describe("auth", () => {
       method: "POST",
       url: "/v1/auth/register",
       headers: { "x-auth-mode": "cookie" },
-      payload: { name: "Web", email: "web@example.com", password: "correct-horse-1" },
+      payload: {
+        name: "Web",
+        email: "web@example.com",
+        password: "correct-horse-1",
+        code: await emailCode(ctx.app, "web@example.com"),
+      },
     });
     expect(json<AuthResponse>(register).tokens.refreshToken).toBe("");
     const cookie = register.cookies.find((item) => item.name === "chatbox_rt");
@@ -111,6 +123,54 @@ describe("auth", () => {
     expect(refresh.statusCode, refresh.body).toBe(200);
   });
 
+  it("requires an emailed code to sign up with email", async () => {
+    const payload = { name: "Grace", email: "grace@example.com", password: "correct-horse-1" };
+    const missing = await ctx.app.inject({ method: "POST", url: "/v1/auth/register", payload });
+    expect(json<{ error: { code: string } }>(missing).error.code).toBe("EMAIL_CODE_REQUIRED");
+
+    const code = await emailCode(ctx.app, payload.email);
+    const wrong = code === "000000" ? "111111" : "000000";
+    const bad = await ctx.app.inject({
+      method: "POST",
+      url: "/v1/auth/register",
+      payload: { ...payload, code: wrong },
+    });
+    expect(bad.statusCode).toBe(400);
+
+    const ok = await ctx.app.inject({
+      method: "POST",
+      url: "/v1/auth/register",
+      payload: { ...payload, code },
+    });
+    expect(ok.statusCode, ok.body).toBe(201);
+
+    const replay = await ctx.app.inject({
+      method: "POST",
+      url: "/v1/auth/register",
+      payload: { ...payload, email: "grace2@example.com", code },
+    });
+    expect(replay.statusCode).toBe(400);
+  });
+
+  it("locks an email code after too many wrong guesses", async () => {
+    const payload = { name: "Linus", email: "linus@example.com", password: "correct-horse-1" };
+    const code = await emailCode(ctx.app, payload.email);
+    const wrong = code === "000000" ? "111111" : "000000";
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await ctx.app.inject({
+        method: "POST",
+        url: "/v1/auth/register",
+        payload: { ...payload, code: wrong },
+      });
+    }
+    const locked = await ctx.app.inject({
+      method: "POST",
+      url: "/v1/auth/register",
+      payload: { ...payload, code },
+    });
+    expect(locked.statusCode).toBe(400);
+  });
+
   it("resets a password with a one-time code and signs out other sessions", async () => {
     const { user, tokens } = await registerUser(ctx.app, { email: "reset@example.com" });
     const forgot = await ctx.app.inject({
@@ -120,20 +180,38 @@ describe("auth", () => {
     });
     expect(forgot.statusCode).toBe(202);
     expect(await PasswordReset.countDocuments({ userId: user.id })).toBe(1);
+    const code = outbox.get("reset@example.com") ?? "";
 
     const bad = await ctx.app.inject({
       method: "POST",
       url: "/v1/auth/password/reset",
-      payload: { identifier: "reset@example.com", code: "000000", password: "new-password-2" },
+      payload: {
+        identifier: "reset@example.com",
+        code: code === "000000" ? "111111" : "000000",
+        password: "new-password-2",
+      },
     });
     expect(bad.statusCode).toBe(400);
+
+    const reset = await ctx.app.inject({
+      method: "POST",
+      url: "/v1/auth/password/reset",
+      payload: { identifier: "reset@example.com", code, password: "new-password-2" },
+    });
+    expect(reset.statusCode, reset.body).toBe(204);
 
     const refresh = await ctx.app.inject({
       method: "POST",
       url: "/v1/auth/refresh",
       payload: { refreshToken: tokens.refreshToken },
     });
-    expect(refresh.statusCode).toBe(200);
+    expect(refresh.statusCode).toBe(401);
+    const login = await ctx.app.inject({
+      method: "POST",
+      url: "/v1/auth/login",
+      payload: { identifier: "reset@example.com", password: "new-password-2" },
+    });
+    expect(login.statusCode).toBe(200);
   });
 
   it("grants admin to configured emails and protects admin routes", async () => {
